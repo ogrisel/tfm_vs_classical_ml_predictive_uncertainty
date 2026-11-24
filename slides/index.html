@@ -312,12 +312,12 @@ MAPE = mean |y - ŷ| / y      in %, comparable across seasons
 .num.tight[
 | Model | MAE (MW) | MAPE | MAE 1 h | MAPE 1 h | MAE 24 h | MAPE 24 h | MAE 24 h vs RTE |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **Kumo-Tabular** | **655** | **1.34%** | **256** | **0.54%** | **920** | **1.88%** | **-12%** |
-| HGB quantile (median) | 757 | 1.55% | 364 | 0.76% | 987 | 2.02% | -6% |
-| t0-gamma | 770 | 1.59% | 273 | 0.57% | 1103 | 2.26% | +5% |
-| TabICL | 780 | 1.59% | 313 | 0.65% | 1094 | 2.25% | +4% |
 | HGB mean | 786 | 1.61% | 378 | 0.79% | 1036 | 2.12% | -1% |
+| HGB quantile (median) | 757 | 1.55% | 364 | 0.76% | 987 | 2.02% | -6% |
+| TabICL | 780 | 1.59% | 313 | 0.65% | 1094 | 2.25% | +4% |
+| **Kumo-Tabular** | **655** | **1.34%** | **256** | **0.54%** | **920** | **1.88%** | **-12%** |
 | Chronos-2 | 821 | 1.70% | 415 | 0.87% | 1089 | 2.24% | +4% |
+| t0-gamma | 770 | 1.59% | 273 | 0.57% | 1103 | 2.26% | +5% |
 | *RTE day-ahead (baseline)* | – | – | – | – | *1051* | *2.17%* | – |
 ]
 
@@ -360,12 +360,12 @@ TSFMs: history window and covariates.]
 .num.tight[
 | Model | MAE 1 h | 12 h | 24 h | MAPE 1 h | 12 h | 24 h |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| **Kumo-Tabular** | **256** | **791** | **920** | **0.54%** | **1.62%** | **1.88%** |
-| HGB quantile (median) | 364 | 920 | 987 | 0.76% | 1.89% | 2.02% |
-| t0-gamma | 273 | 935 | 1103 | 0.57% | 1.93% | 2.26% |
-| TabICL | 313 | 933 | 1094 | 0.65% | 1.89% | 2.25% |
 | HGB mean | 378 | 946 | 1036 | 0.79% | 1.93% | 2.12% |
+| HGB quantile (median) | 364 | 920 | 987 | 0.76% | 1.89% | 2.02% |
+| TabICL | 313 | 933 | 1094 | 0.65% | 1.89% | 2.25% |
+| **Kumo-Tabular** | **256** | **791** | **920** | **0.54%** | **1.62%** | **1.88%** |
 | Chronos-2 | 415 | 960 | 1089 | 0.87% | 1.98% | 2.24% |
+| t0-gamma | 273 | 935 | 1103 | 0.57% | 1.93% | 2.26% |
 | *RTE day-ahead (baseline)* | – | – | *1051* | – | – | *2.17%* |
 ]
 
@@ -508,13 +508,13 @@ L_τ(y, q) = τ · (y - q)         if y ≥ q     (q too low)
 .num.tight[
 | Model | Pinball loss (MW) | vs HGB quantile |
 | --- | ---: | ---: |
-| **Kumo-Tabular** | **109.4** | **-16%** |
-| t0-gamma | 118.9 | -9% |
-| TabICL | 120.7 | -8% |
-| Chronos-2 | 121.7 | -7% |
-| HGB quantile + conformal | 122.3 | -6% |
-| HGB quantile + recal | 123.3 | -6% |
 | HGB quantile | 130.8 | – |
+| HGB quantile + recal | 123.3 | -6% |
+| HGB quantile + conformal | 122.3 | -6% |
+| TabICL | 120.7 | -8% |
+| **Kumo-Tabular** | **109.4** | **-16%** |
+| Chronos-2 | 121.7 | -7% |
+| t0-gamma | 118.9 | -9% |
 ]
 
 - **Kumo-Tabular** is first again, then a pack at **119-123 MW**
@@ -553,9 +553,9 @@ Nominal coverage 90%. Tabular models: default features
 | HGB quantile + recal | 90.3% | 4288 |
 | HGB quantile + conformal | 90.7% | 4293 |
 | TabICL | 87.3% | 3712 |
+| Kumo-Tabular | 96.1% | 4313 |
 | Chronos-2 | 89.3% | 3322 |
 | t0-gamma | **91.6%** | 3361 |
-| Kumo-Tabular | 96.1% | 4313 |
 ]
 ]
 .right-column[
@@ -585,13 +585,13 @@ Summed over the 8 CV folds
 .num.tight[
 | Model | Fit + predict | Predict only |
 | --- | ---: | ---: |
-| TabICL | 9 min | 8 min |
-| t0-gamma | 18 min | 18 min |
-| Kumo-Tabular | 21 min | 21 min |
 | HGB quantile | 36 min | < 1 min |
-| Chronos-2 | 52 min | 52 min |
 | HGB quantile + recal | 2 h 29 min | < 1 min |
 | HGB quantile + conformal | 2 h 42 min | < 1 min |
+| TabICL | 9 min | 8 min |
+| Kumo-Tabular | 21 min | 21 min |
+| Chronos-2 | 52 min | 52 min |
+| t0-gamma | 18 min | 18 min |
 ]
 
 - **TFMs and TSFMs are inference-bound**: all the cost is at predict
