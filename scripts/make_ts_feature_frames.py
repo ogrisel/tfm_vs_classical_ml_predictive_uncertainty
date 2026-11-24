@@ -296,8 +296,9 @@ FRAMES = [
         "The four models consume the same (X, y); only the model changes.",
         "HGB mean: one model for the mean. HGB quantile: one model per quantile. TabICL and "
         "Kumo-Tabular (TFMs): `fit` just stores (X, y); prediction runs the pretrained transformer "
-        "with the training table as context, and returns quantiles or the mean. Kumo returns 999 "
-        "quantiles, we keep 5/50/95%.",
+        "with the training table as context, and returns the mean or quantiles. Outputs: a point "
+        "forecast (the mean) and a probabilistic forecast (the 5/50/95% quantiles). Kumo returns "
+        "999 quantiles, we keep 5/50/95%.",
     ),
 ]
 N_FRAMES = len(FRAMES)
@@ -797,31 +798,48 @@ def draw_models(step, S, dpi):
     bg.text(tx + tw / 2, ty + 0.14, f"n rows × {tot}", ha="center", va="center", size=11.5, color=GRAY)
 
     models = [
-        ("HGB mean", "scikit-learn", "1 boosted-tree model,\nsquared error: the mean", BLUE),
-        ("HGB quantile", "scikit-learn", "3 boosted-tree models,\none per quantile", BLUE),
-        ("TabICL", "tabular foundation model", "fit: stores (X, y)\npredict: quantiles or mean, (X, y) as context", ORANGE),
-        ("Kumo-Tabular", "tabular foundation model", "same recipe, 999 quantiles,\nwe keep the 3 we need", ORANGE),
+        # (name, family, description, colour, targets): targets are the output boxes
+        # reached by the model, "point" = mean, "proba" = the 3 quantiles
+        ("HGB mean", "scikit-learn", "1 boosted-tree model,\nsquared error: the mean", BLUE, ("point",)),
+        ("HGB quantile", "scikit-learn", "3 boosted-tree models,\none per quantile", BLUE, ("proba",)),
+        ("TabICL", "tabular foundation model", "fit: stores (X, y)\npredict: mean or quantiles, (X, y) as context", ORANGE, ("point", "proba")),
+        ("Kumo-Tabular", "tabular foundation model", "same recipe, mean or 999 quantiles,\nwe keep the 3 we need", ORANGE, ("point", "proba")),
     ]
     bx, bw, bh, gap = 4.0, 4.5, 1.05, 0.18
     top = 5.75
-    for i, (name, family, desc, color) in enumerate(models):
+    # output boxes: a point forecast (the mean) and a probabilistic forecast (3 quantiles)
+    ox, ow = 10.0, 2.35
+    pt_y, pt_h = 4.05, 1.55
+    pr_y, pr_h = 1.6, 2.15
+    box(bg, ox, pt_y, ow, pt_h, "white", BEIGE_DARK, lw=1.5)
+    bg.text(ox + ow / 2, pt_y + pt_h - 0.14, "Point forecast", ha="center", va="top", size=13, color=BLUE, weight="bold")
+    bg.plot([ox + ow / 2], [pt_y + 0.75], marker="o", ms=11, color=BLUE, ls="none")
+    bg.text(ox + ow / 2, pt_y + 0.12, "the mean", ha="center", va="bottom", size=11.5, color=GRAY)
+    box(bg, ox, pr_y, ow, pr_h, "white", BEIGE_DARK, lw=1.5)
+    bg.text(ox + ow / 2, pr_y + pr_h - 0.14, "Probabilistic forecast", ha="center", va="top", size=13, color=BLUE, weight="bold")
+    mx = ox + ow / 2
+    bg.plot([mx, mx], [pr_y + 0.65, pr_y + 1.5], color=BLUE, lw=2)
+    for yy, ww in ((0.65, 0.3), (1.07, 0.45), (1.5, 0.3)):
+        bg.plot([mx - ww / 2, mx + ww / 2], [pr_y + yy, pr_y + yy], color=BLUE, lw=3)
+    bg.text(ox + ow / 2, pr_y + 0.12, "q5 · q50 · q95", ha="center", va="bottom", size=11.5, color=GRAY)
+    # arrow end points on the left edge of each output box, one slot per model
+    slots = {"point": (pt_y + pt_h - 0.45, pt_y + 0.7), "proba": (pr_y + pr_h - 0.55, pr_y + 0.35)}
+    used = {"point": 0, "proba": 0}
+
+    for i, (name, family, desc, color, targets) in enumerate(models):
         y = top - bh - i * (bh + gap)
         box(bg, bx, y, bw, bh, "white", color, lw=2.4)
         bg.text(bx + 0.2, y + bh - 0.14, name, size=15, color=BLUE, va="top", weight="bold")
         bg.text(bx + bw - 0.2, y + bh - 0.18, family, size=11, color=GRAY, va="top", ha="right")
         bg.text(bx + 0.2, y + 0.12, desc, size=12, color=BLUE, va="bottom", linespacing=1.25)
         arrow(bg, tx + tw + 0.05, ty + th / 2, bx - 0.05, y + bh / 2)
-        arrow(bg, bx + bw + 0.05, y + bh / 2, 9.95, 3.75 + (1.5 - i) * 0.45)
+        for tgt in targets:
+            top_slot, bottom_slot = slots[tgt]
+            n_in = sum(tgt in m[4] for m in models)
+            ty_out = top_slot + (bottom_slot - top_slot) * used[tgt] / max(n_in - 1, 1)
+            used[tgt] += 1
+            arrow(bg, bx + bw + 0.05, y + bh / 2, ox - 0.05, ty_out)
 
-    # output
-    ox, oy, ow, oh = 10.0, 2.7, 2.35, 2.1
-    box(bg, ox, oy, ow, oh, "white", BEIGE_DARK, lw=1.5)
-    bg.text(ox + ow / 2, oy + oh - 0.16, "load(t)", ha="center", va="top", size=13, color=BLUE, weight="bold")
-    bg.text(ox + ow / 2, oy + 0.14, "q5 · q50 · q95", ha="center", va="bottom", size=11.5, color=GRAY)
-    mx = ox + ow / 2
-    bg.plot([mx, mx], [oy + 0.65, oy + 1.55], color=BLUE, lw=2)
-    for yy, ww in ((0.65, 0.3), (1.1, 0.45), (1.55, 0.3)):
-        bg.plot([mx - ww / 2, mx + ww / 2], [oy + yy, oy + yy], color=BLUE, lw=3)
     bg.text(0.45, 0.62, "× 3 horizons (1, 12, 24 h): one independent model per horizon and method",
             size=13, color=GRAY, va="center")
     return fig

@@ -269,7 +269,7 @@ background-size: 100% 100%
 
 ???
 
-- Same table, four tabular models. HGB mean: one model for the mean. HGB quantile: one model per quantile. TabICL and Kumo-Tabular (TFMs): `fit` just stores (X, y); prediction runs the pretrained transformer with the training table as context, and the TFMs can return quantiles or the mean. Kumo returns 999 quantiles, we keep 5/50/95%.
+- Same table, four tabular models. HGB mean: one model for the mean. HGB quantile: one model per quantile. TabICL and Kumo-Tabular (TFMs): `fit` just stores (X, y); prediction runs the pretrained transformer with the training table as context, and the TFMs can return the mean or quantiles. Two outputs: a point forecast (the mean) and a probabilistic forecast (the 5/50/95% quantiles). Kumo returns 999 quantiles, we keep 5/50/95%.
 
 ---
 class: dark, middle, section-slide
