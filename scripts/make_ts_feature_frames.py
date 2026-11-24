@@ -294,7 +294,7 @@ FRAMES = [
     (
         "Same table, four tabular models",
         "The four models consume the same (X, y); only the model changes.",
-        "HGB quantile: one model per quantile. HGB mean: one model for the mean. TabICL and "
+        "HGB mean: one model for the mean. HGB quantile: one model per quantile. TabICL and "
         "Kumo-Tabular (TFMs): `fit` just stores (X, y); prediction runs the pretrained transformer "
         "with the training table as context, and returns quantiles or the mean. Kumo returns 999 "
         "quantiles, we keep 5/50/95%.",
@@ -797,8 +797,8 @@ def draw_models(step, S, dpi):
     bg.text(tx + tw / 2, ty + 0.14, f"n rows × {tot}", ha="center", va="center", size=11.5, color=GRAY)
 
     models = [
-        ("HGB quantile", "scikit-learn", "3 boosted-tree models,\none per quantile", BLUE),
         ("HGB mean", "scikit-learn", "1 boosted-tree model,\nsquared error: the mean", BLUE),
+        ("HGB quantile", "scikit-learn", "3 boosted-tree models,\none per quantile", BLUE),
         ("TabICL", "tabular foundation model", "fit: stores (X, y)\npredict: quantiles or mean, (X, y) as context", ORANGE),
         ("Kumo-Tabular", "tabular foundation model", "same recipe, 999 quantiles,\nwe keep the 3 we need", ORANGE),
     ]
