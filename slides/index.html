@@ -339,8 +339,8 @@ TSFMs: history window and covariates.]
   t0_gamma 770.1).
 - Round 2 added load_diffs, load_same_hour and temp_diffs to every lagged-feature
   model. Default-feature MAE was 872 (hgb_mean), 859 (hgb quantile), 847
-  (TabICL), 688 (Kumo-Tabular): the features gave -5% to -12% for HGB and TabICL
-  and little for Kumo.
+  (TabICL), 688 (Kumo-Tabular): the diff features gave -10% (HGB mean), -12%
+  (HGB quantile), -8% (TabICL) and -5% (Kumo-Tabular) on the average MAE.
 - Caveat from the round-2 report: the default-feature runs come from other commits,
   hosts and package versions, TabICL and Kumo are stochastic and there is one
   run per row. Differences of a few MW are noise.
@@ -572,9 +572,12 @@ Nominal coverage 90%. Tabular models: default features
 - Source: `coverage_90__average` and `width_90__average` rows of the CV report
   (hgb_quantile_q7 76.65%, recal 90.31% / 4288, conformal 90.73% / 4293).
 - Read it together with the pinball slide: wide intervals buy coverage.
-- Coverage and width were not re-computed for the round-2 features (diff features):
-  the round-2 report only has MAE, MAPE and pinball loss. TODO: rerun the
-  comparison report with the new tabular models.
+- Coverage and width are not available for the round-2 features (diff features):
+  the round-2 report only has MAE, MAPE and pinball loss, and the raw
+  `results/feature_engineering/round2_selected_groups/*_fg3_*` runs are not in
+  the case-study repo (gitignored). TODO: recompute coverage, width and cost
+  from those runs, or rerun the comparison report with the new tabular models,
+  and switch this slide to them.
 - TODO: add the reliability diagram from calibration.html.
 
 ---
