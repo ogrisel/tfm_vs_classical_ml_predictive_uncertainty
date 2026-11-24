@@ -533,14 +533,15 @@ L_τ(y, q) = τ · (y - q)         if y ≥ q     (q too low)
 .num[
 | Model | Coverage | Width (MW) |
 | --- | ---: | ---: |
-| HGB quantile | 76.2% | 3299 |
-| HGB quantile + recal | **91.1%** | 4843 |
-| HGB quantile + conformal | 91.6% | 4868 |
-| TabICL | 87.5% | 5185 |
-| Kumo-Tabular | 98.4% | 6265 |
-| Chronos-2 | 88.0% | 4373 |
-| t0-gamma | 91.7% | 4974 |
+| HGB quantile | <span class="cov-red">76.2%</span> | 3299 |
+| HGB quantile + recal | <span class="cov-green">91.1%</span> | 4843 |
+| HGB quantile + conformal | <span class="cov-green">91.6%</span> | 4868 |
+| TabICL | <span class="cov-orange">87.5%</span> | 5185 |
+| Kumo-Tabular | <span class="cov-orange">98.4%</span> | 6265 |
+| Chronos-2 | <span class="cov-orange">88.0%</span> | 4373 |
+| t0-gamma | <span class="cov-green">91.7%</span> | 4974 |
 ]
+.small.muted[Coverage: green 90-93%, orange 87-90% or above 93%, red below 87%]
 ]
 .right-column[
 - Raw HGB quantiles are **over-confident** at 24 h: **76%** coverage for 90%

@@ -120,6 +120,12 @@ blockquote {
 .tight th, .tight td { padding: 0.1em 0.8em; line-height: 1.2; }
 /* figures: <img class="fig" style="width: 70%"> */
 img.fig { display: block; margin: 0.3em auto; }
+
+/* coverage bands: green 90-93%, orange 87-90% or above 93%, red below 87% */
+.cov-green, .cov-orange, .cov-red { padding: 0.05em 0.45em; border-radius: 3px; }
+.cov-green { background: #cdeccb; }
+.cov-orange { background: #ffd9a8; }
+.cov-red { background: #f5b7b1; }
 .todo {
   font-family: var(--font-mono);
   font-size: 0.6em;
