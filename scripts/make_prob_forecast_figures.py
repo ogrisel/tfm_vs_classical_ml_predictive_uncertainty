@@ -4,7 +4,7 @@
 # ///
 """Illustrations for the probabilistic forecast slides.
 
-Generates two figures in ``slides/assets/prob_forecast``:
+Generates four figures in ``slides/assets/prob_forecast``:
 
 - ``interval.png``: a synthetic daily load curve with its median forecast and
   the 90% prediction interval (5% and 95% quantiles). Roughly one observation
@@ -12,8 +12,8 @@ Generates two figures in ``slides/assets/prob_forecast``:
   should produce. The curves are synthetic (shapes realistic, values not).
 - ``pinball.png``: the pinball loss ``L_tau`` as a function of the error
   ``y - q`` for ``tau`` = 5%, 50% and 95%.
-- ``coverage_vs_width.png``: 90% coverage against interval width at the 24 h
-  horizon, one point per model.
+- ``coverage_vs_width_1h.png`` and ``coverage_vs_width_24h.png``: 90% coverage
+  against interval width at the 1 h and 24 h horizons, one point per model.
 
 Usage::
 
@@ -113,55 +113,78 @@ def plot_pinball(path: Path, dpi: int) -> None:
     plt.close(fig)
 
 
-# 24 h horizon, 8 folds pooled. Tabular models: diff-feature runs
-# (cv_comparison_forecast_fg3). Chronos-2 and t0-gamma: the comparison report
-# (day-1 stitched runs), which do not use the lagged features.
-COVERAGE_VS_WIDTH = (
-    ("HGB quantile", 3299, 76.23, BLUE, "o"),
-    ("Chronos-2", 4373, 88.0, LIGHT_BLUE, "^"),
-    ("HGB + recal", 4843, 91.05, ORANGE, "o"),
-    ("HGB + conformal", 4868, 91.64, ORANGE, "s"),
-    ("t0-gamma", 4974, 91.73, LIGHT_BLUE, "^"),
-    ("TabICL", 5185, 87.47, BLUE, "D"),
-    ("Kumo-Tabular", 6265, 98.45, BLUE, "D"),
-)
-
-# label offsets in points. Coverage is now horizontal, so the 91% cluster
-# stacks vertically and the labels sit beside it.
-_LABEL_OFFSET = {
-    "HGB quantile": (8, 0),
-    "Chronos-2": (0, -14),
-    "TabICL": (-8, 12),
-    "Kumo-Tabular": (-8, 10),
-}
-# the 91% cluster gets labels in free space on the right, joined by leader lines
-# (data coordinates: coverage %, width MW), stacked in the same order as the points
-_LABEL_AT = {
-    "t0-gamma": (94.6, 5400),
-    "HGB + conformal": (94.6, 4900),
-    "HGB + recal": (94.6, 3900),
-}
-_LABEL_HA = {
-    "HGB quantile": "left",
-    "Chronos-2": "center",
-    "TabICL": "right",
-    "Kumo-Tabular": "right",
+# 8 folds pooled. Tabular models: diff-feature runs (cv_comparison_forecast_fg3).
+# Chronos-2 and t0-gamma: the comparison report (day-1 stitched runs), which do
+# not use the lagged features.
+# Each point is (name, width MW, coverage %, colour, marker).
+COVERAGE_VS_WIDTH = {
+    24: (
+        ("HGB quantile", 3299, 76.23, BLUE, "o"),
+        ("Chronos-2", 4373, 88.0, LIGHT_BLUE, "^"),
+        ("HGB + recal", 4843, 91.05, ORANGE, "o"),
+        ("HGB + conformal", 4868, 91.64, ORANGE, "s"),
+        ("t0-gamma", 4974, 91.73, LIGHT_BLUE, "^"),
+        ("TabICL", 5185, 87.47, BLUE, "D"),
+        ("Kumo-Tabular", 6265, 98.45, BLUE, "D"),
+    ),
+    1: (
+        ("HGB quantile", 1667, 85.42, BLUE, "o"),
+        ("Chronos-2", 2203, 95.47, LIGHT_BLUE, "^"),
+        ("HGB + recal", 1933, 91.05, ORANGE, "o"),
+        ("HGB + conformal", 1933, 91.14, ORANGE, "s"),
+        ("t0-gamma", 1253, 93.23, LIGHT_BLUE, "^"),
+        ("TabICL", 1485, 91.51, BLUE, "D"),
+        ("Kumo-Tabular", 1191, 91.03, BLUE, "D"),
+    ),
 }
 
+# Label placement per horizon. ("off", dx, dy, ha): offset in points from the
+# marker. ("at", x, y): text at data coordinates (coverage %, width MW), joined
+# to the marker by a leader line; used for markers that sit too close together.
+_LABELS = {
+    24: {
+        "HGB quantile": ("off", 8, 0, "left"),
+        "Chronos-2": ("off", 0, -14, "center"),
+        "TabICL": ("off", -8, 12, "right"),
+        "Kumo-Tabular": ("off", -8, 10, "right"),
+        "t0-gamma": ("at", 94.6, 5400),
+        "HGB + conformal": ("at", 94.6, 4900),
+        "HGB + recal": ("at", 94.6, 3900),
+    },
+    1: {
+        "HGB quantile": ("off", 8, 0, "left"),
+        "Chronos-2": ("off", 0, -14, "center"),
+        "TabICL": ("off", 9, 0, "left"),
+        "Kumo-Tabular": ("off", -4, -15, "left"),
+        "t0-gamma": ("off", 9, 0, "left"),
+        "HGB + conformal": ("at", 92.0, 2250),
+        "HGB + recal": ("at", 87.2, 2250),
+    },
+}
 
-def plot_coverage_vs_width(path: Path, dpi: int) -> None:
-    """Interval width against 90% coverage at 24 h, one point per model."""
+_AXES = {
+    # horizon: (xlim, ylim, nominal label (x, y, va))
+    24: ((74, 101), (2900, 6900), (90.4, 3000, "bottom")),
+    1: ((83, 97.5), (900, 2700), (90.2, 2680, "top")),
+}
+
+
+def plot_coverage_vs_width(path: Path, dpi: int, horizon: int) -> None:
+    """Interval width against 90% coverage at one horizon, one point per model."""
+    xlim, ylim, (nx, ny, nva) = _AXES[horizon]
+    labels = _LABELS[horizon]
     fig, ax = plt.subplots(figsize=(9.2, 2.8), facecolor=BEIGE)
     _style(ax)
     ax.axvline(90, color=GRAY, lw=1, ls="--")
-    ax.text(90.4, 3000, "nominal 90%", color=GRAY, fontsize=12, va="bottom")
-    for name, width, coverage, color, marker in COVERAGE_VS_WIDTH:
+    ax.text(nx, ny, "nominal 90%", color=GRAY, fontsize=12, va=nva)
+    for name, width, coverage, color, marker in COVERAGE_VS_WIDTH[horizon]:
         ax.scatter([coverage], [width], s=80, color=color, marker=marker, zorder=3, edgecolors=BLUE, linewidths=0.6)
-        if name in _LABEL_AT:
+        spec = labels[name]
+        if spec[0] == "at":
             ax.annotate(
                 name,
                 (coverage, width),
-                xytext=_LABEL_AT[name],
+                xytext=spec[1:],
                 textcoords="data",
                 ha="left",
                 va="center",
@@ -170,13 +193,13 @@ def plot_coverage_vs_width(path: Path, dpi: int) -> None:
                 arrowprops=dict(arrowstyle="-", color=GRAY, lw=0.8, shrinkA=4, shrinkB=5),
             )
             continue
-        dx, dy = _LABEL_OFFSET[name]
+        _, dx, dy, ha = spec
         ax.annotate(
             name,
             (coverage, width),
             textcoords="offset points",
             xytext=(dx, dy),
-            ha=_LABEL_HA[name],
+            ha=ha,
             va="center",
             fontsize=12,
             color=BLUE,
@@ -187,9 +210,9 @@ def plot_coverage_vs_width(path: Path, dpi: int) -> None:
     legend = ax.legend(loc="upper left", frameon=False, fontsize=11, handletextpad=0.3, borderaxespad=0.2)
     for text in legend.get_texts():
         text.set_color(GRAY)
-    ax.set_xlim(74, 101)
-    ax.set_ylim(2900, 6900)
-    ax.set_xlabel("coverage at 24 h (%)", color=GRAY, fontsize=13)
+    ax.set_xlim(*xlim)
+    ax.set_ylim(*ylim)
+    ax.set_xlabel(f"coverage at {horizon} h (%)", color=GRAY, fontsize=13)
     ax.set_ylabel("90% interval width (MW)", color=GRAY, fontsize=13)
     fig.tight_layout()
     fig.savefig(path, dpi=dpi, facecolor=BEIGE)
@@ -204,7 +227,8 @@ def main() -> None:
     args.outdir.mkdir(parents=True, exist_ok=True)
     plot_interval(args.outdir / "interval.png", args.dpi)
     plot_pinball(args.outdir / "pinball.png", args.dpi)
-    plot_coverage_vs_width(args.outdir / "coverage_vs_width.png", args.dpi)
+    for horizon in (1, 24):
+        plot_coverage_vs_width(args.outdir / f"coverage_vs_width_{horizon}h.png", args.dpi, horizon)
     print(f"wrote figures in {args.outdir}")
 
 

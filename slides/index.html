@@ -11,13 +11,15 @@
       Slide source (remark.js Markdown).
       Slides are separated by "---", speaker notes follow "???".
       Numbers come from the case study (skore-example-electricity-load docs/),
-      averaged over the 1h, 12h and 24h horizons, 8 folds pooled:
-      - point and pinball results: docs/feature-engineering/round2_selected_groups.html
+      8 folds pooled. Point results at 1 h, 12 h and 24 h; pinball loss, coverage and
+      width of the 90% interval at 1 h and 24 h, with no averaging across horizons:
+      - point results: docs/feature-engineering/round2_selected_groups.html
         (hgb_mean, hgb_quantile, tabicl, kumo_tabular with the diff features) and
         docs/model-comparison-forecast/cv_comparison_forecast/ (TSFMs);
-      - coverage / width and cost of the tabular models: the comparison rerun with
-        the diff features (raw_results/model_comparison/cv_comparison_forecast_fg3,
-        scored with the case study compare_predictions.py); TSFMs: the comparison report.
+      - pinball, coverage / width and cost of the tabular models: the comparison rerun
+        with the diff features (raw_results/model_comparison/cv_comparison_forecast_fg3,
+        scored with the case study compare_predictions.py); TSFMs: the comparison report
+        (pinball in MW: the saved prediction files, see the slide notes).
       Content marked TODO is a placeholder to refine.
     -->
     <textarea id="source">
@@ -446,7 +448,6 @@ covariates instead.]
 ## What is a *good* probabilistic prediction?
 
 - **Calibration**: a 90% interval contains the truth ~90% of the time
-  (coverage, reliability diagrams)
 - **Sharpness**: among calibrated predictors, narrower intervals are better
 - **Strictly proper scoring rules** reward both at once: *pinball loss* (and
   its D&sup2; variant) for quantiles
@@ -484,9 +485,109 @@ L_τ(y, q) = τ · (y - q)         if y ≥ q     (q too low)
   forecast; it is `sklearn.metrics.d2_pinball_score`.
 - Figure: scripts/make_prob_forecast_figures.py.
 ---
-## Pinball loss results
+## Pinball loss results, 1 h
 
-24 h horizon, mean of the 5% and 95% pinball losses
+Mean of the 5% and 95% pinball losses
+
+.num.tight[
+| Model | Pinball loss (MW) | vs HGB quantile |
+| --- | ---: | ---: |
+| HGB quantile | 62.9 | – |
+| HGB quantile + recal | 62.7 | 0% |
+| HGB quantile + conformal | 62.3 | -1% |
+| TabICL | 45.9 | -27% |
+| Kumo-Tabular | **38.3** | **-39%** |
+| Chronos-2 | 62.4 | -1% |
+| t0-gamma | 40.3 | -36% |
+]
+
+- **Kumo-Tabular** has the lowest loss: **38 MW**, about **-39%** vs raw HGB
+- **t0-gamma** (40 MW) and **TabICL** (46 MW) follow; the HGB corrections and Chronos-2 stay at the HGB level (62-63 MW)
+
+.small.muted[Tabular models: diff features. Chronos-2 and t0-gamma: saved safe-lead runs.]
+
+???
+
+- Source: pinball loss at 1 h, averaged over the 5% and 95% quantiles (uncertainty.row_loss
+  on the pooled rows, 8 folds): raw_results/model_comparison/cv_comparison_forecast_fg3 for
+  the tabular models; raw_results/model_comparison/cv_comparison_forecast for Chronos-2 and
+  t0-gamma. Same provenance and same caveat as the 24 h slide: these two rows are not the
+  report's day-1 stitched runs. TODO: add those prediction files to raw_results and
+  recompute.
+- Exact values (MW): HGB quantile 62.85, recal 62.65, conformal 62.32, TabICL 45.93,
+  Kumo-Tabular 38.34, Chronos-2 62.44, t0-gamma 40.29. Percentages are relative to the
+  HGB quantile row, computed on the unrounded values.
+- At 1 h the corrections do almost nothing for the pinball loss: the raw quantiles are
+  already close to calibrated (85% coverage), so the gain is small. The foundation models
+  with the lagged load as input (TabICL, Kumo-Tabular) and t0-gamma are much better.
+- TODO: paired-difference intervals before claiming a ranking between Kumo-Tabular,
+  t0-gamma and TabICL.
+
+---
+
+## Coverage and width of the 90% interval, 1 h
+
+Nominal coverage 90%. Tabular models: with the diff features
+
+.cols[
+.left-column[
+.num[
+| Model | Coverage | Width (MW) |
+| --- | ---: | ---: |
+| HGB quantile | <span class="cov-red">85.4%</span> | 1667 |
+| HGB quantile + recal | <span class="cov-green">91.0%</span> | 1933 |
+| HGB quantile + conformal | <span class="cov-green">91.1%</span> | 1933 |
+| TabICL | <span class="cov-green">91.5%</span> | 1485 |
+| Kumo-Tabular | <span class="cov-green">91.0%</span> | 1191 |
+| Chronos-2 | <span class="cov-orange">95.5%</span> | 2203 |
+| t0-gamma | <span class="cov-orange">93.2%</span> | 1253 |
+]
+]
+.right-column[
+- Raw HGB quantiles **under-cover** at 1 h: **85%** for 90%, less than at 24 h (76%)
+- **Recalibration** and **conformal** bring HGB to **91%**, with **~16% wider** intervals
+- **TabICL** and **Kumo-Tabular** are calibrated (**91%**) with **narrower** intervals than corrected HGB
+- **Chronos-2** over-covers (**95%**), with the widest intervals
+]
+]
+
+???
+
+- Source: `coverage_90__1h` and `width_90__1h` of the diff-feature comparison
+  (raw_results/model_comparison/cv_comparison_forecast_fg3, scored with
+  compare_predictions.py): hgb_quantile_q7 85.42% / 1667 MW, recal 91.05% / 1933,
+  conformal 91.14% / 1933, tabicl_n8_full 91.51% / 1485, kumo_tabular 91.03% / 1191.
+- Chronos-2 and t0-gamma are from the comparison report at 1 h (day-1 stitched runs,
+  no lagged features): Chronos-2 95.47% / 2203 MW, t0-gamma 93.23% / 1253 MW. Their
+  prediction files are not in raw_results: the saved default-weather files give
+  Chronos-2 95.51% / 2201 MW and t0-gamma 93.04% / 1255 MW at 1 h.
+  TODO: add the day-1 stitched prediction files to raw_results.
+- Colour bands on the coverage cells: green 90-93%, orange 87-90% or above 93%, red below
+  87%.
+- Read it together with the pinball slide: at 1 h the models with the lowest pinball loss
+  (Kumo-Tabular, t0-gamma, TabICL) are also the narrowest, and two of them are calibrated.
+
+---
+
+## Coverage against width, 1 h
+
+On the line, and low: calibrated, and sharp.
+
+<img class="fig" style="width: 78%" alt="Coverage of the 90% interval against its width at 1 h, one point per model" src="assets/prob_forecast/coverage_vs_width_1h.png" />
+
+???
+
+- Same sources and the same numbers as the previous slide.
+- Read it as a trade-off. Raw HGB is under-covering. Recalibration and conformal
+  correction land on the line but widen the interval by about 270 MW. TabICL and
+  Kumo-Tabular sit on the line and well below the corrected HGB: calibrated and sharper.
+  t0-gamma is the narrowest after Kumo-Tabular but slightly over-covers (93%).
+  Chronos-2 is the widest.
+
+---
+## Pinball loss results, 24 h
+
+Mean of the 5% and 95% pinball losses
 
 .num.tight[
 | Model | Pinball loss (MW) | vs HGB quantile |
@@ -524,9 +625,9 @@ L_τ(y, q) = τ · (y - q)         if y ≥ q     (q too low)
 
 ---
 
-## Results: coverage and width of the 90% interval
+## Coverage and width of the 90% interval, 24 h
 
-24 h horizon, nominal coverage 90%. Tabular models: with the diff features
+Nominal coverage 90%. Tabular models: with the diff features
 
 .cols[
 .left-column[
@@ -541,7 +642,6 @@ L_τ(y, q) = τ · (y - q)         if y ≥ q     (q too low)
 | Chronos-2 | <span class="cov-orange">88.0%</span> | 4373 |
 | t0-gamma | <span class="cov-green">91.7%</span> | 4974 |
 ]
-.small.muted[Coverage: green 90-93%, orange 87-90% or above 93%, red below 87%]
 ]
 .right-column[
 - Raw HGB quantiles are **over-confident** at 24 h: **76%** coverage for 90%
@@ -561,6 +661,8 @@ L_τ(y, q) = τ · (y - q)         if y ≥ q     (q too low)
   prediction files are not in raw_results: the saved default-weather files give
   Chronos-2 87.7% / 4405 MW and t0-gamma 92.1% / 5088 MW at 24 h.
   TODO: add the day-1 stitched prediction files to raw_results.
+- Colour bands on the coverage cells: green 90-93%, orange 87-90% or above 93%, red below
+  87%.
 - Read it together with the pinball slide: wide intervals buy coverage.
 - TODO: add the reliability diagram from calibration.html.
 
@@ -570,9 +672,7 @@ L_τ(y, q) = τ · (y - q)         if y ≥ q     (q too low)
 
 On the line, and low: calibrated, and sharp.
 
-<img class="fig" style="width: 78%" alt="Coverage of the 90% interval against its width at 24 h, one point per model" src="assets/prob_forecast/coverage_vs_width.png" />
-
-.small.muted[Tabular models: diff features. Chronos-2 and t0-gamma: the comparison report.]
+<img class="fig" style="width: 78%" alt="Coverage of the 90% interval against its width at 24 h, one point per model" src="assets/prob_forecast/coverage_vs_width_24h.png" />
 
 ???
 
@@ -678,7 +778,7 @@ Point forecast MAPE (average over horizons) vs amount of training history
 
 1. Foundation models, tabular (TFMs) and time series (TSFMs), are **competitive
    with a scikit-learn baseline**; Kumo-Tabular was best here
-2. **Calibration is not free**: raw HGB quantiles are over-confident (76% at 24 h);
+2. **Calibration is not free**: raw HGB quantiles are over-confident (85% at 1 h, 76% at 24 h);
    recalibration or conformal correction fix it at ~4.6× the fit time
 3. Judge with **proper scoring rules**, not coverage alone
 4. The price is **inference**: TFMs and TSFMs cost about 50× to 270× the
