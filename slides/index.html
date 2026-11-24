@@ -94,6 +94,7 @@ forecasters built for time series? And at what cost?
 | Chronos-2 | time series TFM | 5 / 50 / 95% | history window (4000 h) + future covariates |
 | t0-gamma | time series TFM | 5 / 50 / 95% | history window + future covariates |
 | Kumo-Forecast | time series TFM | point only | past-only covariates |
+| *RTE day-ahead* (baseline) | grid operator | point only, 24 h | proprietary, not a trained model |
 
 ???
 
@@ -103,6 +104,9 @@ forecasters built for time series? And at what cost?
   from The Forecasting Company; Kumo models come from `structured-data-models`.
 - Context lengths: Chronos-2 4000 h (from the run tag `chronos2_ctx4000`),
   TabICL forecaster 1024 h with 4 estimators, Kumo-Forecast 512 h.
+- The baseline is the ENTSO-E day-ahead load forecast for France, published by
+  RTE, the grid operator. It is scored on the same test rows, at the 24 h
+  horizon only. It is the number to beat to claim usefulness in operations.
 - TODO: check the wording on which models are open weights, as the abstract
   says "open source & weights".
 
@@ -288,7 +292,8 @@ MAPE = mean |y - ŷ| / y      in %, comparable across seasons
   hour*, MAE what it costs in MW
 - Scored per horizon (**1 h, 12 h, 24 h**) on the test rows of the **8
   walk-forward folds**, then averaged
-- Reference at 24 h: the **RTE day-ahead forecast** (MAE 1051 MW, MAPE 2.17%)
+- **Baseline**: the grid operator's own **RTE day-ahead forecast**, available at 24 h only
+  (MAE 1051 MW, MAPE 2.17%)
 
 ???
 
@@ -305,23 +310,24 @@ MAPE = mean |y - ŷ| / y      in %, comparable across seasons
 ## Point forecast results (1/2): MAE and MAPE
 
 .num.tight[
-| Model | Family | MAE (MW) | MAPE |
-| --- | --- | ---: | ---: |
-| **Kumo-Tabular** | tabular TFM | **655** | **1.34%** |
-| HGB quantile (median) | scikit-learn | 757 | 1.55% |
-| t0-gamma | time series TFM | 770 | 1.59% |
-| TabICL (8 est.) | tabular TFM | 780 | 1.59% |
-| HGB mean | scikit-learn | 786 | 1.61% |
-| Chronos-2 | time series TFM | 821 | 1.70% |
-| TabICL forecaster | time series interface | 1059 | 2.14% |
-| Kumo-Forecast | time series TFM | 1807 | 3.78% |
+| Model | MAE (MW) | MAPE | MAE 24 h | MAPE 24 h | MAE 24 h vs RTE |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| **Kumo-Tabular** | **655** | **1.34%** | **920** | **1.88%** | **-12%** |
+| HGB quantile (median) | 757 | 1.55% | 987 | 2.02% | -6% |
+| t0-gamma | 770 | 1.59% | 1103 | 2.26% | +5% |
+| TabICL (8 est.) | 780 | 1.59% | 1094 | 2.25% | +4% |
+| HGB mean | 786 | 1.61% | 1036 | 2.12% | -1% |
+| Chronos-2 | 821 | 1.70% | 1089 | 2.24% | +4% |
+| TabICL forecaster | 1059 | 2.14% | 1470 | 2.95% | +40% |
+| Kumo-Forecast | 1807 | 3.78% | 2286 | 4.73% | +117% |
+| *RTE day-ahead (baseline)* | – | – | *1051* | *2.17%* | – |
 ]
 
-- **Kumo-Tabular** is the most accurate: **-13%** MAE against the best HGB
-- HGB, TabICL and the time series model t0-gamma are within **4%** of each other
+- **Kumo-Tabular**: **-13%** MAE against the best HGB, **-12%** against the **operator** at 24 h
+- Most models are **within 5% of the operator** at 24 h; only Kumo-Tabular and HGB quantile beat it clearly
 
-.small.muted[Average over 1 h / 12 h / 24 h, 8 folds pooled. Tabular models: features of the previous
-section, with the diff groups. Time series models: history window and covariates.]
+.small.muted[Average over 1 h / 12 h / 24 h, 8 folds pooled; the operator forecast exists at 24 h only.
+Tabular models: features of the previous section, with the diff groups.]
 
 ???
 
@@ -341,6 +347,12 @@ section, with the diff groups. Time series models: history window and covariates
   paired differences against the older runs were not significant.
 - TODO: the paired-difference figure with block-bootstrap intervals before saying
   that one model beats another within the 757-786 MW pack.
+- Operator baseline: MAE 1051 MW, MAPE 2.17% at 24 h (no average, it has no
+  1 h or 12 h forecast). "vs RTE" is the 24 h MAE of the model divided by 1051,
+  minus one: Kumo-Tabular 920.4 (-12%), HGB quantile 986.9 (-6%), HGB mean
+  1035.9 (-1%), TabICL 1094.1 (+4%), Chronos-2 1089 (+4%), t0-gamma 1103 (+5%).
+- Caveat: a day-ahead forecast is issued once a day, so its real lead time
+  ranges over 12 h to 36 h; the report files it under 24 h.
 - TODO: "-13%" is (655.5 - 757.0) / 757.0 = -13.4%.
 ---
 ## Point forecast results (2/2): by horizon
@@ -356,11 +368,11 @@ section, with the diff groups. Time series models: history window and covariates
 | Chronos-2 | 415 | 960 | 1089 | 0.87% | 1.98% | 2.24% |
 | TabICL forecaster | 382 | 1327 | 1470 | 0.79% | 2.68% | 2.95% |
 | Kumo-Forecast | 1165 | 1969 | 2286 | 2.51% | 4.08% | 4.73% |
-| *RTE day-ahead* | – | – | *1051* | – | – | *2.17%* |
+| *RTE day-ahead (baseline)* | – | – | *1051* | – | – | *2.17%* |
 ]
 
 - **1 h**: Kumo-Tabular, t0-gamma, TabICL cut HGB's MAE by **15-30%**; **24 h**: the gap
-  closes, only Kumo-Tabular and HGB quantile beat **RTE**
+  closes, and only Kumo-Tabular and HGB quantile beat the **RTE baseline**
 
 ???
 
