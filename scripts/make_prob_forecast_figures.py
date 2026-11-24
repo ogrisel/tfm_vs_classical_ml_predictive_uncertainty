@@ -12,6 +12,8 @@ Generates two figures in ``slides/assets/prob_forecast``:
   should produce. The curves are synthetic (shapes realistic, values not).
 - ``pinball.png``: the pinball loss ``L_tau`` as a function of the error
   ``y - q`` for ``tau`` = 5%, 50% and 95%.
+- ``coverage_vs_width.png``: 90% coverage against interval width at the 24 h
+  horizon, one point per model.
 
 Usage::
 
@@ -111,6 +113,69 @@ def plot_pinball(path: Path, dpi: int) -> None:
     plt.close(fig)
 
 
+# 24 h horizon, 8 folds pooled. Tabular models: diff-feature runs
+# (cv_comparison_forecast_fg3). Chronos-2 and t0-gamma: the comparison report
+# (day-1 stitched runs), which do not use the lagged features.
+COVERAGE_VS_WIDTH = (
+    ("HGB quantile", 3299, 76.23, BLUE, "o"),
+    ("Chronos-2", 4373, 88.0, LIGHT_BLUE, "^"),
+    ("HGB + recal", 4843, 91.05, ORANGE, "o"),
+    ("HGB + conformal", 4868, 91.64, ORANGE, "s"),
+    ("t0-gamma", 4974, 91.73, LIGHT_BLUE, "^"),
+    ("TabICL", 5185, 87.47, BLUE, "D"),
+    ("Kumo-Tabular", 6265, 98.45, BLUE, "D"),
+)
+
+# label offsets in points. Coverage is now horizontal, so the 91% cluster
+# stacks vertically and the labels sit beside it.
+_LABEL_OFFSET = {
+    "HGB quantile": (8, 0),
+    "Chronos-2": (0, -14),
+    "HGB + recal": (42, 0),
+    "HGB + conformal": (42, -18),
+    "t0-gamma": (42, 18),
+    "TabICL": (-8, 12),
+    "Kumo-Tabular": (-8, 10),
+}
+_LABEL_HA = {
+    "HGB quantile": "left",
+    "Chronos-2": "center",
+    "HGB + recal": "left",
+    "HGB + conformal": "left",
+    "t0-gamma": "left",
+    "TabICL": "right",
+    "Kumo-Tabular": "right",
+}
+
+
+def plot_coverage_vs_width(path: Path, dpi: int) -> None:
+    """Interval width against 90% coverage at 24 h, one point per model."""
+    fig, ax = plt.subplots(figsize=(9.2, 2.8), facecolor=BEIGE)
+    _style(ax)
+    ax.axvline(90, color=GRAY, lw=1, ls="--")
+    ax.text(90.4, 3000, "nominal 90%", color=GRAY, fontsize=12, va="bottom")
+    for name, width, coverage, color, marker in COVERAGE_VS_WIDTH:
+        ax.scatter([coverage], [width], s=90, color=color, marker=marker, zorder=3, edgecolors=BLUE, linewidths=0.6)
+        dx, dy = _LABEL_OFFSET[name]
+        ax.annotate(
+            name,
+            (coverage, width),
+            textcoords="offset points",
+            xytext=(dx, dy),
+            ha=_LABEL_HA[name],
+            va="center",
+            fontsize=12,
+            color=BLUE,
+        )
+    ax.set_xlim(72, 104)
+    ax.set_ylim(2800, 7000)
+    ax.set_xlabel("coverage at 24 h (%)", color=GRAY, fontsize=13)
+    ax.set_ylabel("90% interval width (MW)   →  wider", color=GRAY, fontsize=13)
+    fig.tight_layout()
+    fig.savefig(path, dpi=dpi, facecolor=BEIGE)
+    plt.close(fig)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--outdir", type=Path, default=REPO / "slides/assets/prob_forecast")
@@ -119,6 +184,7 @@ def main() -> None:
     args.outdir.mkdir(parents=True, exist_ok=True)
     plot_interval(args.outdir / "interval.png", args.dpi)
     plot_pinball(args.outdir / "pinball.png", args.dpi)
+    plot_coverage_vs_width(args.outdir / "coverage_vs_width.png", args.dpi)
     print(f"wrote figures in {args.outdir}")
 
 

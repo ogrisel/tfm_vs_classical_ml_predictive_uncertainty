@@ -500,10 +500,10 @@ L_τ(y, q) = τ · (y - q)         if y ≥ q     (q too low)
 | t0-gamma | 174.2 | +3% |
 ]
 
-- At 24 h, the **corrected HGB quantiles** have the lowest loss: **155.7 and 156.8 MW**, about **-7%** against the raw HGB quantile
-- **Kumo-Tabular** and **Chronos-2** follow at **161 MW**; **TabICL** and **t0-gamma** are no better than the raw HGB quantile
+- The **corrected HGB quantiles** are best: **156 MW**, about **-7%** vs raw HGB
+- **Kumo-Tabular** and **Chronos-2** follow (161 MW); TabICL and t0-gamma do not beat raw HGB
 
-.small.muted[Tabular models: with the diff features. Chronos-2 and t0-gamma: saved safe-lead runs (not the day-1 stitched runs of the report).]
+.small.muted[Tabular models: diff features. Chronos-2 and t0-gamma: saved safe-lead runs.]
 
 ???
 
@@ -562,6 +562,24 @@ L_τ(y, q) = τ · (y - q)         if y ≥ q     (q too low)
   TODO: add the day-1 stitched prediction files to raw_results.
 - Read it together with the pinball slide: wide intervals buy coverage.
 - TODO: add the reliability diagram from calibration.html.
+
+---
+
+## Coverage against width, 24 h
+
+On the line, and low: calibrated, and sharp.
+
+<img class="fig" style="width: 78%" alt="Coverage of the 90% interval against its width at 24 h, one point per model" src="assets/prob_forecast/coverage_vs_width.png" />
+
+.small.muted[Tabular models: diff features. Chronos-2 and t0-gamma: the comparison report.]
+
+???
+
+- Same sources and the same numbers as the previous slide.
+- Read it as a trade-off. Raw HGB is the narrowest and far left of 90%. Recalibration
+  and conformal correction land on the line and widen the interval by about 1500 MW.
+  Chronos-2 is the narrowest model close to the line. Kumo-Tabular is the widest
+  and over-covers, at 98%.
 
 ---
 
