@@ -91,7 +91,7 @@ cost?
 | --- | --- | --- | --- |
 | HGB quantile | scikit-learn | 5 / 50 / 95% | feature table |
 | HGB quantile + recal / conformal | scikit-learn | 5 / 50 / 95% | feature table |
-| TabICL (8 est.) | TFM | 5 / 50 / 95% | feature table |
+| TabICL | TFM | 5 / 50 / 95% | feature table |
 | Kumo-Tabular | TFM | 5 / 50 / 95% | feature table |
 | Chronos-2 | TSFM | 5 / 50 / 95% | history window (4000 h) + future covariates |
 | t0-gamma | TSFM | 5 / 50 / 95% | history window + future covariates |
@@ -271,7 +271,7 @@ background-size: 100% 100%
 
 ???
 
-- Same table, three quantile models. HGB: one model per quantile. TabICL and Kumo-Tabular: `fit` just stores (X, y); prediction runs the pretrained transformer with the training table as context. Kumo returns 999 quantiles, we keep 5/50/95%.
+- Same table, four tabular models. HGB quantile: one model per quantile. HGB mean: one model for the mean. TabICL and Kumo-Tabular (TFMs): `fit` just stores (X, y); prediction runs the pretrained transformer with the training table as context, and the TFMs can return quantiles or the mean. Kumo returns 999 quantiles, we keep 5/50/95%.
 
 ---
 class: dark, middle, section-slide
@@ -317,7 +317,7 @@ MAPE = mean |y - ŷ| / y      in %, comparable across seasons
 | **Kumo-Tabular** | **655** | **1.34%** | **920** | **1.88%** | **-12%** |
 | HGB quantile (median) | 757 | 1.55% | 987 | 2.02% | -6% |
 | t0-gamma | 770 | 1.59% | 1103 | 2.26% | +5% |
-| TabICL (8 est.) | 780 | 1.59% | 1094 | 2.25% | +4% |
+| TabICL | 780 | 1.59% | 1094 | 2.25% | +4% |
 | HGB mean | 786 | 1.61% | 1036 | 2.12% | -1% |
 | Chronos-2 | 821 | 1.70% | 1089 | 2.24% | +4% |
 | *RTE day-ahead (baseline)* | – | – | *1051* | *2.17%* | – |
@@ -364,7 +364,7 @@ TSFMs: history window and covariates.]
 | **Kumo-Tabular** | **256** | **791** | **920** | **0.54%** | **1.62%** | **1.88%** |
 | HGB quantile (median) | 364 | 920 | 987 | 0.76% | 1.89% | 2.02% |
 | t0-gamma | 273 | 935 | 1103 | 0.57% | 1.93% | 2.26% |
-| TabICL (8 est.) | 313 | 933 | 1094 | 0.65% | 1.89% | 2.25% |
+| TabICL | 313 | 933 | 1094 | 0.65% | 1.89% | 2.25% |
 | HGB mean | 378 | 946 | 1036 | 0.79% | 1.93% | 2.12% |
 | Chronos-2 | 415 | 960 | 1089 | 0.87% | 1.98% | 2.24% |
 | *RTE day-ahead (baseline)* | – | – | *1051* | – | – | *2.17%* |
@@ -437,9 +437,7 @@ models = {
 ```python
 from tabicl import TabICLRegressor
 
-model = TabICLRegressor(
-    n_estimators=8
-).fit(X, y)
+model = TabICLRegressor().fit(X, y)
 
 preds = model.predict(
     X_test,
@@ -513,7 +511,7 @@ L_τ(y, q) = τ · (y - q)         if y ≥ q     (q too low)
 | --- | ---: | ---: |
 | **Kumo-Tabular** | **109.4** | **-16%** |
 | t0-gamma | 118.9 | -9% |
-| TabICL (8 est.) | 120.7 | -8% |
+| TabICL | 120.7 | -8% |
 | Chronos-2 | 121.7 | -7% |
 | HGB quantile + conformal | 122.3 | -6% |
 | HGB quantile + recal | 123.3 | -6% |
@@ -588,7 +586,7 @@ Summed over the 8 CV folds
 .num.tight[
 | Model | Fit + predict | Predict only |
 | --- | ---: | ---: |
-| TabICL (8 est.) | 9 min | 8 min |
+| TabICL | 9 min | 8 min |
 | t0-gamma | 18 min | 18 min |
 | Kumo-Tabular | 21 min | 21 min |
 | HGB quantile | 36 min | < 1 min |
