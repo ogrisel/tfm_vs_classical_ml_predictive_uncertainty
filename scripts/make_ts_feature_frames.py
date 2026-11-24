@@ -292,11 +292,12 @@ FRAMES = [
         "between the train and test periods.",
     ),
     (
-        "Same table, three quantile models",
-        "HGB, TabICL and Kumo-Tabular all consume the same (X, y); only the model changes.",
-        "HGB: one model per quantile. TabICL and Kumo-Tabular: `fit` just stores (X, y); "
-        "prediction runs the pretrained transformer with the training table as context. "
-        "Kumo returns 999 quantiles, we keep 5/50/95%.",
+        "Same table, four tabular models",
+        "The four models consume the same (X, y); only the model changes.",
+        "HGB quantile: one model per quantile. HGB mean: one model for the mean. TabICL and "
+        "Kumo-Tabular (TFMs): `fit` just stores (X, y); prediction runs the pretrained transformer "
+        "with the training table as context, and returns quantiles or the mean. Kumo returns 999 "
+        "quantiles, we keep 5/50/95%.",
     ),
 ]
 N_FRAMES = len(FRAMES)
@@ -797,19 +798,20 @@ def draw_models(step, S, dpi):
 
     models = [
         ("HGB quantile", "scikit-learn", "3 boosted-tree models,\none per quantile", BLUE),
-        ("TabICL (8 estimators)", "tabular foundation model", "fit: stores (X, y)\npredict: (X, y) as context", ORANGE),
+        ("HGB mean", "scikit-learn", "1 boosted-tree model,\nsquared error: the mean", BLUE),
+        ("TabICL", "tabular foundation model", "fit: stores (X, y)\npredict: quantiles or mean, (X, y) as context", ORANGE),
         ("Kumo-Tabular", "tabular foundation model", "same recipe, 999 quantiles,\nwe keep the 3 we need", ORANGE),
     ]
-    bx, bw, bh, gap = 4.0, 4.5, 1.2, 0.2
+    bx, bw, bh, gap = 4.0, 4.5, 1.05, 0.18
     top = 5.75
     for i, (name, family, desc, color) in enumerate(models):
         y = top - bh - i * (bh + gap)
         box(bg, bx, y, bw, bh, "white", color, lw=2.4)
-        bg.text(bx + 0.2, y + bh - 0.16, name, size=15, color=BLUE, va="top", weight="bold")
-        bg.text(bx + bw - 0.2, y + bh - 0.2, family, size=11, color=GRAY, va="top", ha="right")
-        bg.text(bx + 0.2, y + 0.14, desc, size=12, color=BLUE, va="bottom", linespacing=1.25)
+        bg.text(bx + 0.2, y + bh - 0.14, name, size=15, color=BLUE, va="top", weight="bold")
+        bg.text(bx + bw - 0.2, y + bh - 0.18, family, size=11, color=GRAY, va="top", ha="right")
+        bg.text(bx + 0.2, y + 0.12, desc, size=12, color=BLUE, va="bottom", linespacing=1.25)
         arrow(bg, tx + tw + 0.05, ty + th / 2, bx - 0.05, y + bh / 2)
-        arrow(bg, bx + bw + 0.05, y + bh / 2, 9.95, 3.75 + (1 - i) * 0.45)
+        arrow(bg, bx + bw + 0.05, y + bh / 2, 9.95, 3.75 + (1.5 - i) * 0.45)
 
     # output
     ox, oy, ow, oh = 10.0, 2.7, 2.35, 2.1
