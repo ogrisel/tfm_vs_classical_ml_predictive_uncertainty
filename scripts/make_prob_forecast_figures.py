@@ -47,7 +47,7 @@ def _style(ax):
         ax.spines[side].set_visible(False)
     for side in ("left", "bottom"):
         ax.spines[side].set_color(GRAY)
-    ax.tick_params(colors=GRAY, labelsize=12)
+    ax.tick_params(colors=GRAY, labelsize=14)
 
 
 def plot_interval(path: Path, dpi: int) -> None:
@@ -63,7 +63,7 @@ def plot_interval(path: Path, dpi: int) -> None:
     truth = median + sigma * rng.standard_normal(hours.size)
     outside = (truth < lo) | (truth > hi)
 
-    fig, ax = plt.subplots(figsize=(8.6, 3.9), facecolor=BEIGE)
+    fig, ax = plt.subplots(figsize=(9.0, 3.3), facecolor=BEIGE)
     _style(ax)
     ax.fill_between(hours, lo, hi, color=LIGHT_BLUE, alpha=0.45, lw=0, label="90% prediction interval (5%-95%)")
     ax.plot(hours, lo, color=LIGHT_BLUE, lw=1)
@@ -90,22 +90,22 @@ def plot_pinball(path: Path, dpi: int) -> None:
     """Pinball loss for tau = 5%, 50% and 95%."""
     u = np.linspace(-1, 1, 201)
     taus = (0.05, 0.5, 0.95)
-    fig, axes = plt.subplots(1, 3, figsize=(8.6, 2.9), sharey=True, facecolor=BEIGE)
+    fig, axes = plt.subplots(1, 3, figsize=(9.0, 2.6), sharey=True, facecolor=BEIGE)
     for ax, tau in zip(axes, taus):
         _style(ax)
         ax.plot(u, pinball(u, tau), color=ORANGE, lw=2.8)
         ax.axvline(0, color=GRAY, lw=0.8, ls=":")
-        ax.set_title(rf"$\tau$ = {tau:.0%}", color=BLUE, fontsize=14)
-        ax.set_xlabel(r"error  $y - q$", color=GRAY, fontsize=12)
+        ax.set_title(rf"$\tau$ = {tau:.0%}", color=BLUE, fontsize=17)
+        ax.set_xlabel(r"error  $y - q$", color=GRAY, fontsize=14)
         ax.set_xticks([-1, 0, 1])
         ax.set_xticklabels(["y < q", "0", "y > q"])
         ax.set_ylim(0, 1)
     axes[0].set_ylabel(r"$L_\tau(y, q)$", color=GRAY, fontsize=13)
-    axes[0].text(-0.97, 0.88, "q too high:\nsteep", fontsize=11, color=GRAY, va="top")
-    axes[0].text(0.05, 0.25, "q too low:\nshallow", fontsize=11, color=GRAY, va="top")
-    axes[1].text(0.0, 0.8, "symmetric:\nMAE / 2", fontsize=11, color=GRAY, va="top", ha="center")
-    axes[2].text(-0.97, 0.25, "q too high:\nshallow", fontsize=11, color=GRAY, va="top")
-    axes[2].text(0.05, 0.88, "q too low:\nsteep", fontsize=11, color=GRAY, va="top")
+    axes[0].text(-0.45, 0.9, "q too high:\nsteep", fontsize=13.5, color=GRAY, va="top")
+    axes[0].text(0.05, 0.42, "q too low:\nshallow", fontsize=13.5, color=GRAY, va="top")
+    axes[1].text(0.0, 0.8, "symmetric:\nMAE / 2", fontsize=13.5, color=GRAY, va="top", ha="center")
+    axes[2].text(-0.97, 0.42, "q too high:\nshallow", fontsize=13.5, color=GRAY, va="top")
+    axes[2].text(-0.15, 0.9, "q too low:\nsteep", fontsize=13.5, color=GRAY, va="top")
     fig.tight_layout()
     fig.savefig(path, dpi=dpi, facecolor=BEIGE)
     plt.close(fig)

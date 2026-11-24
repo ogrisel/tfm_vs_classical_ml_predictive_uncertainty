@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TabICL vs scikit-learn for predictive uncertainty quantification</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!--
+      Slide source (remark.js Markdown).
+      Slides are separated by "---", speaker notes follow "???".
+      Numbers come from the case study (skore-example-electricity-load docs/),
+      averaged over the 1h, 12h and 24h horizons, 8 folds pooled:
+      - point and pinball results: docs/feature-engineering/round2_selected_groups.html
+        (hgb_mean, hgb_quantile, tabicl, kumo_tabular with the diff features) and
+        docs/model-comparison-forecast/cv_comparison_forecast/ (time series models);
+      - coverage / width and cost: the same comparison report, default features.
+      Content marked TODO is a placeholder to refine.
+    -->
+    <textarea id="source">
+class: dark, middle, title-slide
+
+# TabICL vs scikit-learn for predictive uncertainty quantification
+
+<div class="authors">
+Olivier Grisel &amp; Jérôme Dockès<br/>
+<span class="sub">Probabl, the Tabular AI company</span>
+</div>
+
+<div class="tagline">Compute! Paris 2026 &middot; 25 November 2026</div>
+
+???
+
+- 30 min slot (10:50-11:20, Auditorium, track "Models on Trial"): aim for
+  ~22-25 min of talk, leave room for questions.
+- Jérôme ran the case study; I present it. Say that out loud.
+- The title stays as accepted on pretalx, even though the study now also
+  covers Kumo, Chronos-2 and t0-gamma.
+
+---
+
+## Who did what
+
+- **Jérôme Dockès**: designed and ran the electricity load forecasting case
+  study (scikit-learn, skrub, skore, TabICL, Kumo, Chronos-2, t0-gamma)
+- **Olivier Grisel**: presenting; machine learning engineer and scikit-learn
+  contributor
+- Both at **Probabl**, *the Tabular AI company*: scikit-learn, skrub, skore
+
+.small[
+Case study: [probabl-ai.github.io/skore-example-electricity-load](https://probabl-ai.github.io/skore-example-electricity-load/)
+&middot;
+[github.com/probabl-ai/skore-example-electricity-load](https://github.com/probabl-ai/skore-example-electricity-load)
+]
+
+???
+
+- TODO: confirm roles and wording for Jérôme's bio line.
+- Mention the case study is public and reproducible; every report on the
+  index page has full provenance.
+
+---
+
+## The question
+
+> Tabular and time series foundation models (TFMs) are *advertised* as giving
+> well calibrated probabilistic predictions out of the box.
+
+**Is that true?** Compared with a classical scikit-learn pipeline, and with
+forecasters built for time series? And at what cost?
+
+- Simplicity of development
+- Accuracy of the median forecast
+- Calibration **and** sharpness of the 5-95% interval
+- Computational cost, fit and predict
+
+???
+
+- Straight from the abstract and the updated description: a time series
+  forecasting problem, a grid of probabilistic regressions over horizons,
+  tabular models and TFMs compared with time-structured features.
+
+---
+
+## The contenders
+
+| Model | Family | Output | Inputs |
+| --- | --- | --- | --- |
+| HGB quantile | scikit-learn | 5 / 50 / 95% | feature table |
+| TabICL (8 est.) | tabular TFM | 5 / 50 / 95% | feature table |
+| Kumo-Tabular | tabular TFM | 5 / 50 / 95% | feature table |
+| TabICL forecaster | time series interface | 5 / 50 / 95% | history window + future covariates |
+| Chronos-2 | time series TFM | 5 / 50 / 95% | history window (4000 h) + future covariates |
+| t0-gamma | time series TFM | 5 / 50 / 95% | history window + future covariates |
+| Kumo-Forecast | time series TFM | point only | past-only covariates |
+
+???
+
+- Sources: scripts/model_comparison/README.md and model_registry.py in the
+  case study.
+- Chronos-2 is `amazon/chronos-2`; t0-gamma is `theforecastingcompany/t0-gamma`
+  from The Forecasting Company; Kumo models come from `structured-data-models`.
+- Context lengths: Chronos-2 4000 h (from the run tag `chronos2_ctx4000`),
+  TabICL forecaster 1024 h with 4 estimators, Kumo-Forecast 512 h.
+- TODO: check the wording on which models are open weights, as the abstract
+  says "open source & weights".
+
+---
+
+## Forecasting as a grid of probabilistic regressions
+
+- Predict the load **1 h, 12 h and 24 h** ahead, as **5%, 50% and 95%** quantiles
+- **Walk-forward CV**, 8 folds, with a gap between train and test; test dates
+  are identical for every model
+- **Weather forecasts** as inputs, not the observed weather
+- Tabular models get a **feature table** built by the shared skrub pipeline
+- Time series models get the **history window** and the future covariates
+  directly
+
+.placeholder[TODO: diagram of the forecast grid, one axis for prediction time,
+one for horizon]
+
+???
+
+- Source: src/electricity_load_forecasting/pipeline.py (`make_data_op`) and
+  splitter.py in the case study.
+- Same scoring for all models, so reports are comparable.
+
+---
+background-image: url(assets/ts_features/frame_01.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- Start from the hourly load. Raw material: the national load, one row per hour (`resample`). Point at the daily double peak and at the weekend dip: that is what the lags will exploit.
+
+---
+background-image: url(assets/ts_features/frame_02.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- Pick a prediction time and a horizon. One row of the training table = one prediction time p. The target is `load_mw.shift(-h)`. We repeat the construction for h = 1, 12 and 24 h.
+
+---
+background-image: url(assets/ts_features/frame_03.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- Calendar features of the target time. 5 features computed on the *target* time, in Europe/Paris time: hour of day, day of week, day of year, year and public holiday flag.
+
+---
+background-image: url(assets/ts_features/frame_04.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- Recent load lags. For h = 12 the most recent usable observation is p itself (= lag_12). Lags 1 to 11 would peek into the future, so they are not built. This is why the features are built per horizon.
+
+---
+background-image: url(assets/ts_features/frame_05.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- Same clock hour, earlier days. Exploits the daily and weekly seasonality. `load_same_hour` adds lags 36 and 180: the same clock hour as p, one day and one week before. 17 load lags in total for h = 12.
+
+---
+background-image: url(assets/ts_features/frame_06.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- Hourly changes of the load. `load_diffs`: lag_k - lag_(k+1) for k = h ... 22, so 11 features for h = 12. A tree cannot subtract two columns itself, so the differences are given explicitly.
+
+---
+background-image: url(assets/ts_features/frame_07.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- Load now versus earlier loads. `load_diffs` adds lag_h - lag_24, lag_48, lag_168 and `load_same_hour` adds lag_h - lag_36, lag_180: 5 more features, 16 load differences in total.
+
+---
+background-image: url(assets/ts_features/frame_08.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- Rolling median and IQR. median and IQR over 24 h and 168 h windows ending at p and at t - 24 h: 2 stats x 2 widths x 2 end points = 8 features.
+
+---
+background-image: url(assets/ts_features/frame_09.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- Weather forecasts. Weather *forecasts* rather than observations: a forecast issued at least 24 h before the valid time is assumed available at p (day-1 forecast for h <= 18 h, day-2 above). One feature per city, 3 of 10 shown.
+
+---
+background-image: url(assets/ts_features/frame_10.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- Rolling temperature means. 9 features per city (temperature at t + 8 rolling means) x 10 cities = 90 weather features: the biggest group by far.
+
+---
+background-image: url(assets/ts_features/frame_11.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- National temperature changes. `temp_diffs`: change of the national mean temperature over 24 h, 168 h and h, and anomalies against its 24 h and 168 h means. Windows end at t and only forecasts valid by t are used. 5 features that combine the cities, which a tree cannot do itself.
+
+---
+background-image: url(assets/ts_features/frame_12.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- One feature row per prediction time. Column names are abbreviated. `prediction_time` and `target_time` are dropped and everything is converted to floats: the tabular models see no timestamp, the time structure only lives in the features. These are the round-2 feature groups.
+
+---
+background-image: url(assets/ts_features/frame_13.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- Slide p forward: a plain tabular dataset. Number of features per horizon: 163 (h = 1), 141 (h = 12), 110 (h = 24). Without the three feature groups: 129, 118, 102. Evaluation uses walk-forward CV with a gap between the train and test periods.
+
+---
+background-image: url(assets/ts_features/frame_14.png)
+background-position: center
+background-repeat: no-repeat
+background-size: 100% 100%
+
+???
+
+- Same table, three quantile models. HGB: one model per quantile. TabICL and Kumo-Tabular: `fit` just stores (X, y); prediction runs the pretrained transformer with the training table as context. Kumo returns 999 quantiles, we keep 5/50/95%.
+
+---
+class: dark, middle, section-slide
+
+# Point forecasts
+
+How far is the median forecast from the load?
+---
+## A point forecast: one number per horizon
+
+One value for the load at *t + h*: the **median** (50% quantile) of the
+quantile models, the **mean** for `hgb_mean`.
+
+```text
+MAE  = mean |y - ŷ|          in MW, the typical miss
+MAPE = mean |y - ŷ| / y      in %, comparable across seasons
+```
+
+- Load swings from ~30 to ~90 GW: MAPE tells whether a miss is large *for that
+  hour*, MAE what it costs in MW
+- Scored per horizon (**1 h, 12 h, 24 h**) on the test rows of the **8
+  walk-forward folds**, then averaged
+- Reference at 24 h: the **RTE day-ahead forecast** (MAE 1051 MW, MAPE 2.17%)
+
+???
+
+- Source: "Walk-forward CV comparison" of the case study, rows `mae__*` and
+  `mape__*`: "MAE / MAPE use the median (point) prediction".
+- hgb_mean is HistGradientBoostingRegressor with squared error, the usual
+  scikit-learn point forecaster. The other scikit-learn row is the median of
+  the HGB quantile models.
+- The load range in the notes is an approximation of the French load; check it
+  before saying it out loud. TODO: confirm min and max of the series.
+- ENTSO-E day-ahead load forecast for France, issued by RTE, compared with the
+  actual load at the target time.
+---
+## Point forecast results (1/2): MAE and MAPE
+
+.num.tight[
+| Model | Family | MAE (MW) | MAPE |
+| --- | --- | ---: | ---: |
+| **Kumo-Tabular** | tabular TFM | **655** | **1.34%** |
+| HGB quantile (median) | scikit-learn | 757 | 1.55% |
+| t0-gamma | time series TFM | 770 | 1.59% |
+| TabICL (8 est.) | tabular TFM | 780 | 1.59% |
+| HGB mean | scikit-learn | 786 | 1.61% |
+| Chronos-2 | time series TFM | 821 | 1.70% |
+| TabICL forecaster | time series interface | 1059 | 2.14% |
+| Kumo-Forecast | time series TFM | 1807 | 3.78% |
+]
+
+- **Kumo-Tabular** is the most accurate: **-13%** MAE against the best HGB
+- HGB, TabICL and the time series model t0-gamma are within **4%** of each other
+
+.small.muted[Average over 1 h / 12 h / 24 h, 8 folds pooled. Tabular models: features of the previous
+section, with the diff groups. Time series models: history window and covariates.]
+
+???
+
+- Sources: docs/feature-engineering/round2_selected_groups.html for hgb_mean,
+  hgb_quantile, tabicl, kumo_tabular (MAE 786.4, 757.0, 779.9, 655.5; MAPE
+  1.611, 1.554, 1.594, 1.344). The other rows come from the "Walk-forward CV
+  comparison" table of docs/model-comparison-forecast (chronos2_ctx4000 821.3,
+  t0_gamma 770.1, tabicl_forecast 1059, kumo_forecast 1807).
+- Round 2 added load_diffs, load_same_hour and temp_diffs to every lagged-feature
+  model. Default-feature MAE was 872 (hgb_mean), 859 (hgb quantile), 847
+  (TabICL), 688 (Kumo-Tabular): the features gave -5% to -12% for HGB and TabICL
+  and little for Kumo.
+- Caveat from the round-2 report: the default-feature runs come from other commits,
+  hosts and package versions, TabICL and Kumo are stochastic and there is one
+  run per row. Differences of a few MW are noise.
+- t0-gamma and Chronos-2 ran with the day1-stitched weather (2026-11-23 rerun);
+  paired differences against the older runs were not significant.
+- TODO: the paired-difference figure with block-bootstrap intervals before saying
+  that one model beats another within the 757-786 MW pack.
+- TODO: "-13%" is (655.5 - 757.0) / 757.0 = -13.4%.
+---
+## Point forecast results (2/2): by horizon
+
+.num.tight[
+| Model | MAE 1 h | 12 h | 24 h | MAPE 1 h | 12 h | 24 h |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| **Kumo-Tabular** | **256** | **791** | **920** | **0.54%** | **1.62%** | **1.88%** |
+| HGB quantile (median) | 364 | 920 | 987 | 0.76% | 1.89% | 2.02% |
+| t0-gamma | 273 | 935 | 1103 | 0.57% | 1.93% | 2.26% |
+| TabICL (8 est.) | 313 | 933 | 1094 | 0.65% | 1.89% | 2.25% |
+| HGB mean | 378 | 946 | 1036 | 0.79% | 1.93% | 2.12% |
+| Chronos-2 | 415 | 960 | 1089 | 0.87% | 1.98% | 2.24% |
+| TabICL forecaster | 382 | 1327 | 1470 | 0.79% | 2.68% | 2.95% |
+| Kumo-Forecast | 1165 | 1969 | 2286 | 2.51% | 4.08% | 4.73% |
+| *RTE day-ahead* | – | – | *1051* | – | – | *2.17%* |
+]
+
+- **1 h**: Kumo-Tabular, t0-gamma, TabICL cut HGB's MAE by **15-30%**; **24 h**: the gap
+  closes, only Kumo-Tabular and HGB quantile beat **RTE**
+
+???
+
+- Same sources as the previous slide. Per-horizon cells: round-2 report for the
+  four tabular models, comparison report for the others.
+- 1 h: (364 - 256) / 364 = -30% for Kumo, (364 - 273) / 364 = -25% for t0-gamma,
+  (364 - 313) / 364 = -14% for TabICL.
+- 24 h: HGB quantile 987 MW, HGB mean 1036, TabICL 1094, t0-gamma 1103, Chronos-2
+  1089, RTE 1051. The round-2 features gave TabICL no gain at 24 h (+4 MW, 6/8
+  folds better on average).
+- Kumo-Forecast is past-only (no future covariates, oracle past weather only),
+  which explains a large part of its error at long horizons.
+- RTE: the operator's forecast for time t is compared with the actual load at
+  t; shown only at 24 h.
+---
+class: dark, middle, section-slide
+
+# Probabilistic forecasts
+
+From one number to a 90% prediction interval
+---
+## A 90% prediction interval from two quantiles
+
+- Predict **quantiles** of the load instead of one value: **5%**, **50%**, **95%**
+- The 5% and 95% quantiles delimit a **90% prediction interval**: the load falls
+  **inside it 90%** of the time. Its **width** is the stated uncertainty
+
+<img class="fig" style="width: 78%" alt="Median forecast and 90% prediction interval on a synthetic load curve" src="assets/prob_forecast/interval.png" />
+
+???
+
+- Figure: scripts/make_prob_forecast_figures.py. Synthetic curves, drawn so that
+  the interval is wider at the daily peaks; 7 of 72 points fall outside, close to the
+  expected 10%.
+- 90% is the nominal level: "calibrated" means that the observed frequency
+  matches it over many predictions, not that every point is inside.
+- All the models of the study predict 5%, 50% and 95% (Kumo-Forecast: median
+  only), so that they are scored on exactly the same three quantiles even when
+  they predict more (Kumo returns 999 quantiles, HGB was trained on 7 levels).
+---
+
+## Simplicity of development
+
+.cols[
+.left-column[
+### scikit-learn
+
+```python
+from sklearn.ensemble import (
+    HistGradientBoostingRegressor,
+)
+
+# one model per quantile level
+models = {
+    q: HistGradientBoostingRegressor(
+        loss="quantile", quantile=q
+    ).fit(X, y)
+    for q in (0.05, 0.5, 0.95)
+}
+# + post-hoc recalibration
+```
+]
+.right-column[
+### TabICL
+
+```python
+from tabicl import TabICLRegressor
+
+model = TabICLRegressor(
+    n_estimators=8
+).fit(X, y)
+
+preds = model.predict(
+    X_test,
+    output_type="quantiles",
+    alphas=(0.05, 0.5, 0.95),
+)
+```
+]
+]
+
+.small[Time series TFMs skip the feature table: they take a history window and
+future covariates instead.]
+
+???
+
+- Source: src/electricity_load_forecasting/quantile_regressor.py and
+  tabicl.py in the case study.
+- Point: TabICL is simpler for quantiles (no per-quantile models, no crossing
+  quantiles to sort). The feature engineering is the same for the tabular
+  models; the skrub DataOp does it for both.
+- TODO: mention hyper-parameter tuning budget on the HGB side (Optuna in
+  scripts/tuning/).
+
+---
+
+## What is a *good* probabilistic prediction?
+
+- **Calibration**: a 90% interval contains the truth ~90% of the time
+  (coverage, reliability diagrams)
+- **Sharpness**: among calibrated predictors, narrower intervals are better
+- **Strictly proper scoring rules** reward both at once: *pinball loss* (and
+  its D&sup2; variant) for quantiles
+- Always evaluated on **left-out data**, here with time-ordered CV
+
+.placeholder[TODO: one figure: a calibrated-but-useless vs sharp-but-overconfident interval]
+
+???
+
+- Key message: coverage alone is gameable (infinitely wide intervals), width
+  alone is gameable (zero width): scoring rules combine both.
+
+---
+## The pinball loss
+
+```text
+L_τ(y, q) = τ · (y - q)         if y ≥ q     (q too low)
+          = (1 - τ) · (q - y)   if y < q     (q too high)
+```
+
+<img class="fig" style="width: 78%" alt="Pinball loss for tau = 5%, 50% and 95%" src="assets/prob_forecast/pinball.png" />
+
+- Minimised by the **true τ-quantile**: rewards calibration **and** sharpness
+- In **MW**; τ = 50% is half the MAE, so we average **τ = 5% and 95%**
+
+???
+
+- Source for the choice of levels: pareto.html and the round-2 report, "Pinball is
+  the mean over the 5% and 95% levels"; the 50% level is already captured by MAE
+  and MAPE.
+- At τ = 5%, putting q above the truth costs 0.95 per MW, below it only 0.05:
+  the loss pushes q down until 5% of the observations are below it.
+- D² pinball (used in the comparison table of the case study) is the skill score
+  1 - L(model) / L(constant quantile of y_true), 1 is perfect, 0 is a constant
+  forecast; it is `sklearn.metrics.d2_pinball_score`.
+- Figure: scripts/make_prob_forecast_figures.py.
+---
+## Pinball loss results
+
+.num.tight[
+| Model | Pinball loss (MW) | vs HGB quantile |
+| --- | ---: | ---: |
+| **Kumo-Tabular** | **109.4** | **-16%** |
+| t0-gamma | 118.9 | -9% |
+| TabICL (8 est.) | 120.7 | -8% |
+| Chronos-2 | 121.7 | -7% |
+| HGB quantile + conformal | 122.3 | -6% |
+| HGB quantile + recal | 123.3 | -6% |
+| HGB quantile | 130.8 | – |
+| TabICL forecaster | 155.3 | +19% |
+]
+
+- **Kumo-Tabular** is first again, then a pack at **119-123 MW**
+- **TabICL out of the box** is on par with the **recalibrated** HGB quantiles
+
+.small.muted[Mean of the 5% and 95% pinball losses, averaged over horizons, 8 folds pooled.
+Kumo-Forecast gives no quantiles. Tabular models: with the diff features.]
+
+???
+
+- Sources: round-2 report ("Pinball loss (MW)": hgb_quantile 130.8, recal 123.3,
+  conformal 122.3, tabicl 120.7, kumo_tabular 109.4) and the "Pareto" page of the
+  comparison (t0-gamma 118.85, Chronos-2 121.74, TabICL forecaster 155.30).
+- The percentages are relative to the HGB quantile row, computed on the rounded
+  values.
+- Recalibration and conformal are post-hoc corrections of the HGB quantiles; they
+  multiply the fit time by about 4 (HGB q7 2154 s vs 8921 s for the recal run).
+  They were not re-run for TabICL with the round-2 features.
+- Per horizon, round 2: HGB quantile 93 / 175 / 186 MW (1 h / 12 h / 24 h) before
+  and 63 / 160 / 169 after the new features; TabICL 46 / 145 / 171; Kumo-Tabular
+  38 / 129 / 161.
+- TODO: paired-difference intervals before claiming a ranking inside the pack.
+---
+
+## Results: coverage and width of the 90% interval
+
+Nominal coverage 90%. Tabular models: default features
+
+.cols[
+.left-column[
+.num[
+| Model | Coverage | Width (MW) |
+| --- | ---: | ---: |
+| HGB quantile | 76.7% | 2987 |
+| HGB quantile + recal | 90.3% | 4288 |
+| TabICL | 87.3% | 3712 |
+| TabICL + recal | 85.1% | 3771 |
+| TabICL forecaster | 88.3% | 4402 |
+| Chronos-2 | 89.3% | 3322 |
+| t0-gamma | **91.6%** | 3361 |
+| Kumo-Tabular | 96.1% | 4313 |
+]
+]
+.right-column[
+- Raw HGB quantiles are **over-confident**: ~77% coverage for a nominal 90%
+- **t0-gamma** is closest to nominal with a moderate width
+- **Kumo-Tabular over-covers** (96%) and its intervals are among the widest
+- Recalibration: HGB goes **77% → 90%**; TabICL goes **87% → 85%**
+]
+]
+
+???
+
+- Source: `coverage_90__average` and `width_90__average` rows of the CV report.
+- Read it together with the pinball slide: wide intervals buy coverage.
+- Coverage and width were not re-computed for the round-2 features (diff features):
+  the round-2 report only has MAE, MAPE and pinball loss. TODO: rerun the
+  comparison report with the new tabular models.
+- TODO: add the reliability diagram from calibration.html.
+
+---
+
+## Computational cost
+
+Summed over the 8 CV folds
+
+.num.tight[
+| Model | Fit + predict | Predict only |
+| --- | ---: | ---: |
+| HGB quantile | 36 min | < 1 min |
+| TabICL (8 est.) | 9 min | 8 min |
+| Kumo-Forecast | 10 min | 10 min |
+| t0-gamma | 18 min | 18 min |
+| Kumo-Tabular | 21 min | 21 min |
+| Chronos-2 | 52 min | 52 min |
+| TabICL forecaster | 3 h 21 min | 3 h 21 min |
+]
+
+- **Time series TFMs and TabICL are inference-bound**: all the cost is at predict
+- Predicting with the TFMs costs about **40× to 1000×** the HGB quantile
+  predict time
+
+???
+
+- Source: pareto.html of the case study (fit + predict and predict-only panels,
+  summed over folds). Exact seconds in the notes: HGB quantile 2154 s total,
+  11.9 s predict; TabICL 523 s / 460 s; Kumo-Tabular 1273 s / 1270 s;
+  Kumo-Forecast 615 s; t0-gamma 1050 s; Chronos-2 3106 s; TabICL forecaster
+  12051 s.
+- TODO: the HGB quantile fit is slower than TabICL's whole run here. Check the
+  HGB config before presenting this.
+- These are default-feature runs; the round-2 tabular models have ~25% more
+  features, so the tabular times are slightly optimistic.
+- TODO: hardware differs. The case study runs the forecasters with `--device
+  cuda`, the tabular models without. Say so on the slide or normalise it.
+
+---
+
+## Read the comparison with care
+
+- **Weather**: tabular models use day-1 weather forecasts for horizons up to 18 h
+  and day-2 forecasts beyond; Chronos-2, t0-gamma, Kumo-Forecast and the TabICL
+  forecaster always use day-2 forecasts
+- **Features**: point and pinball results use the tabular models with the
+  diff features; coverage, width and cost are from the default-feature runs
+- **Output**: Kumo-Forecast gives points only, so it is scored on MAPE and MAE
+- **Hardware**: not normalised across models (see cost slide)
+- **Scope**: one French load series, one 8-fold split, one set of settings per
+  model
+
+???
+
+- Source: scripts/model_comparison/README.md, the paragraph on weather
+  defaults.
+- Why it matters: the forecaster and tabular models do not see the same
+  weather. The speaker should say so before anyone asks.
+- TODO: say how large the paired differences are, using the block-bootstrap
+  intervals from the report.
+
+---
+
+## Small vs large sample size
+
+Point forecast MAPE (average over horizons) vs amount of training history
+
+.num[
+| History | HGB (mean) | TabICL (median) |
+| --- | ---: | ---: |
+| 3 months | 6.49% | **5.05%** |
+| 12 months | 2.02% | **1.90%** |
+| 24 months | 1.81% | **1.74%** |
+| all (26-47) | 1.67% | **1.65%** |
+]
+
+- TabICL's advantage is largest with **little data** and vanishes with more
+- ...but its inference cost keeps growing with the context size
+
+.small.muted[Preliminary: this study confounds history length with seasonal coverage and has no uncertainty bars.]
+
+???
+
+- Source: docs/history-length/report/index.html, which is marked
+  "Work in progress" (see results/history_length/WARNING.md in the repo).
+  Do not present as definitive before Jérôme re-runs it.
+- Only HGB and TabICL are covered. TODO: the same sweep for Chronos-2, t0-gamma
+  and Kumo, if it is feasible before the talk.
+
+---
+
+## Takeaways
+
+1. Foundation models, tabular and time series, are **competitive with a
+   scikit-learn baseline**; Kumo-Tabular was best here
+2. **Calibration is not free**: raw intervals are close to nominal but not
+   exact; recalibration helped HGB and hurt TabICL
+3. Judge with **proper scoring rules**, not coverage alone
+4. The price is **inference**: TFMs cost about 40× to 1000× the prediction
+   time of HGB quantile
+
+.todo[TODO] Revise once the paired-difference check and the HGB cost check are done.
+
+???
+
+- Keep these in sync with the final results.
+
+---
+class: dark, middle, title-slide
+
+# Thank you
+
+<div class="authors">
+Olivier Grisel &amp; Jérôme Dockès<br/>
+<span class="sub">Probabl, the Tabular AI company</span>
+</div>
+
+- Case study reports: [probabl-ai.github.io/skore-example-electricity-load](https://probabl-ai.github.io/skore-example-electricity-load/)
+- Code: [github.com/probabl-ai/skore-example-electricity-load](https://github.com/probabl-ai/skore-example-electricity-load)
+- TabICL: TODO link &middot; scikit-learn &middot; skrub &middot; skore
+
+???
+
+- TODO: add contact details / QR code to the slides repository.
+    </textarea>
+    <script src="vendor/remark.min.js"></script>
+    <script>
+      var slideshow = remark.create({
+        ratio: "16:9",
+        highlightStyle: "monokai",
+        highlightLanguage: "python",
+        highlightLines: true,
+        countIncrementalSlides: false,
+        slideNumberFormat: "%current% / %total%",
+      });
+    </script>
+  </body>
+</html>

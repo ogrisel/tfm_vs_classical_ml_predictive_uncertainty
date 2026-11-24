@@ -115,6 +115,11 @@ blockquote {
 .small { font-size: 0.7em; }
 .muted { opacity: 0.6; }
 .center { text-align: center; }
+/* compact tables: wrap them in .num.tight[ ... ] to fit 8-10 rows on a slide */
+.tight table { font-size: 0.6em; margin: 0.2em 0; }
+.tight th, .tight td { padding: 0.1em 0.8em; line-height: 1.2; }
+/* figures: <img class="fig" style="width: 70%"> */
+img.fig { display: block; margin: 0.3em auto; }
 .todo {
   font-family: var(--font-mono);
   font-size: 0.6em;
