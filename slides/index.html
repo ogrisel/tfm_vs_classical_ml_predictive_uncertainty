@@ -310,22 +310,22 @@ MAPE = mean |y - ŷ| / y      in %, comparable across seasons
 ## Point forecast results (1/2): MAE and MAPE
 
 .num.tight[
-| Model | MAE (MW) | MAPE | MAE 1 h | MAPE 1 h | MAE 24 h | MAPE 24 h | MAE 24 h vs RTE |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| HGB mean | 786 | 1.61% | 378 | 0.79% | 1036 | 2.12% | -1% |
-| HGB quantile (median) | 757 | 1.55% | 364 | 0.76% | 987 | 2.02% | -6% |
-| TabICL | 780 | 1.59% | 313 | 0.65% | 1094 | 2.25% | +4% |
-| **Kumo-Tabular** | **655** | **1.34%** | **256** | **0.54%** | **920** | **1.88%** | **-12%** |
-| Chronos-2 | 821 | 1.70% | 415 | 0.87% | 1089 | 2.24% | +4% |
-| t0-gamma | 770 | 1.59% | 273 | 0.57% | 1103 | 2.26% | +5% |
-| *RTE day-ahead (baseline)* | – | – | – | – | *1051* | *2.17%* | – |
+| Model | MAE 1 h | MAPE 1 h | MAE 24 h | MAPE 24 h | MAE 24 h vs RTE |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| HGB mean | 378 | 0.79% | 1036 | 2.12% | -1% |
+| HGB quantile (median) | 364 | 0.76% | 987 | 2.02% | -6% |
+| TabICL | 313 | 0.65% | 1094 | 2.25% | +4% |
+| **Kumo-Tabular** | **256** | **0.54%** | **920** | **1.88%** | **-12%** |
+| Chronos-2 | 415 | 0.87% | 1089 | 2.24% | +4% |
+| t0-gamma | 273 | 0.57% | 1103 | 2.26% | +5% |
+| *RTE day-ahead (baseline)* | – | – | *1051* | *2.17%* | – |
 ]
 
 - **1 h**: Kumo-Tabular cuts the MAE of HGB quantile by **30%** (256 vs 364 MW)
-- **Kumo-Tabular**: **-13%** MAE against the best HGB, **-12%** against the **operator** at 24 h
+- **Kumo-Tabular**: **-12%** MAE against the **operator** at 24 h
 - Most models are **within 5% of the operator** at 24 h; only Kumo-Tabular and HGB quantile beat it clearly
 
-.small.muted[Average over 1 h / 12 h / 24 h, 8 folds pooled; the operator forecast exists at 24 h only.
+.small.muted[8 folds pooled; the operator forecast exists at 24 h only.
 Tabular models (HGB, TFMs): features of the previous section, with the diff groups.
 TSFMs: history window and covariates.]
 
