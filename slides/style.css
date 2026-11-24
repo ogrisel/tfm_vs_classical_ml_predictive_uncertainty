@@ -1,0 +1,154 @@
+/*
+ * Theme inspired by https://www.probabl.ai
+ * Palette and typefaces taken from the site's CSS tokens:
+ *   beige #f4f3ef / #e4e1dd, black #121212, deep blue #040524,
+ *   orange #ff7900, light blue #4cd0ff
+ *   headings: IBM Plex Serif, body: Suisse Intl (commercial, not bundled),
+ *   code: Suisse Intl Mono.
+ * Suisse Intl is not redistributable here, so we fall back to Inter and
+ * IBM Plex Mono from Google Fonts (system fonts if offline).
+ */
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:wght@400;500&family=Inter:wght@400;500&display=swap");
+
+:root {
+  --beige: #f4f3ef;
+  --beige-dark: #e4e1dd;
+  --black: #121212;
+  --blue: #040524;
+  --blue-light: #4cd0ff;
+  --orange: #ff7900;
+  --font-sans: "Suisse Intl", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "IBM Plex Serif", ui-serif, Georgia, serif;
+  --font-mono: "Suisse Intl Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+.remark-slide-content {
+  background-color: var(--beige);
+  color: var(--black);
+  font-family: var(--font-sans);
+  font-size: 26px;
+  line-height: 1.4;
+  padding: 1.2em 2em 2.4em 2em;
+  /* Probabl logo, bottom left */
+  background-image: url("assets/probabl-logo.svg");
+  background-repeat: no-repeat;
+  background-position: 2em calc(100% - 0.9em);
+  background-size: 110px auto;
+}
+
+.remark-slide-number {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  opacity: 0.55;
+  right: 2em;
+  bottom: 1em;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: 1.15;
+  margin: 0 0 0.6em 0;
+}
+h1 { font-size: 2.1em; }
+h2 { font-size: 1.6em; }
+h3 { font-size: 1.15em; color: var(--orange); font-family: var(--font-sans); font-weight: 500; }
+
+h2::after {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 4px;
+  margin-top: 0.35em;
+  background: var(--orange);
+}
+
+a { color: inherit; text-decoration-color: var(--orange); text-underline-offset: 3px; }
+
+strong { font-weight: 500; }
+em { font-style: normal; color: var(--orange); }
+
+ul, ol { padding-left: 1.1em; }
+li { margin-bottom: 0.35em; }
+li::marker { color: var(--orange); }
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  background: var(--beige-dark);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+}
+.remark-code, .remark-inline-code { font-family: var(--font-mono); }
+.remark-code { font-size: 0.62em; line-height: 1.35; }
+pre { background: var(--blue); color: #fff; border-radius: 6px; padding: 0.6em 0.9em; }
+pre code { background: none; color: inherit; font-size: 1em; padding: 0; }
+.hljs { background: transparent !important; color: #fff; }
+.remark-code-line-highlighted { background-color: rgba(255, 121, 0, 0.35); }
+
+/* tables */
+table {
+  border-collapse: collapse;
+  font-size: 0.72em;
+  margin: 0.4em 0;
+}
+th, td { padding: 0.3em 0.8em; text-align: left; border-bottom: 1px solid var(--beige-dark); }
+th { border-bottom: 2px solid var(--black); font-weight: 500; }
+/* numeric tables: wrap them in .num[ ... ] */
+.num th:not(:first-child), .num td:not(:first-child) { text-align: right; }
+
+blockquote {
+  margin: 0.6em 0;
+  padding-left: 0.9em;
+  border-left: 4px solid var(--orange);
+  font-family: var(--font-serif);
+}
+
+/* layout helpers */
+.left-column { width: 48%; float: left; }
+.right-column { width: 48%; float: right; }
+.cols::after { content: ""; display: table; clear: both; }
+.small { font-size: 0.7em; }
+.muted { opacity: 0.6; }
+.center { text-align: center; }
+.todo {
+  font-family: var(--font-mono);
+  font-size: 0.6em;
+  background: var(--orange);
+  color: var(--blue);
+  border-radius: 3px;
+  padding: 0.1em 0.5em;
+  vertical-align: middle;
+}
+.placeholder {
+  border: 2px dashed var(--orange);
+  border-radius: 6px;
+  padding: 1.2em;
+  text-align: center;
+  font-size: 0.8em;
+  color: var(--blue);
+}
+
+/* dark slides: title, sections, closing */
+.remark-slide-content.dark {
+  background-color: var(--blue);
+  color: #fff;
+  background-image: url("assets/probabl-logo-white.svg");
+}
+.dark h1, .dark h2, .dark h3 { color: #fff; }
+.dark h3 { color: var(--orange); }
+.dark .remark-slide-number { color: #fff; }
+.dark a { color: var(--blue-light); }
+.dark code { background: rgba(255, 255, 255, 0.12); }
+
+.title-slide { justify-content: center; }
+.title-slide h1 { font-size: 2.3em; max-width: 85%; }
+.title-slide .authors { font-size: 1.05em; margin-top: 1.4em; line-height: 1.5; }
+.title-slide .authors .sub { font-size: 0.7em; opacity: 0.75; }
+.title-slide .tagline { color: var(--orange); font-size: 0.8em; margin-top: 1.4em; }
+
+.section-slide h1 { margin-top: 1.6em; }
