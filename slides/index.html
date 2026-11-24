@@ -486,39 +486,42 @@ L_τ(y, q) = τ · (y - q)         if y ≥ q     (q too low)
 ---
 ## Pinball loss results
 
+24 h horizon, mean of the 5% and 95% pinball losses
+
 .num.tight[
 | Model | Pinball loss (MW) | vs HGB quantile |
 | --- | ---: | ---: |
-| HGB quantile | 130.8 | – |
-| HGB quantile + recal | 123.3 | -6% |
-| HGB quantile + conformal | 122.3 | -6% |
-| TabICL | 120.7 | -8% |
-| **Kumo-Tabular** | **109.4** | **-16%** |
-| Chronos-2 | 121.7 | -7% |
-| t0-gamma | 118.9 | -9% |
+| HGB quantile | 169.0 | – |
+| HGB quantile + recal | 156.8 | -7% |
+| HGB quantile + conformal | **155.7** | **-8%** |
+| TabICL | 171.0 | +1% |
+| Kumo-Tabular | 160.7 | -5% |
+| Chronos-2 | 160.8 | -5% |
+| t0-gamma | 174.2 | +3% |
 ]
 
-- **Kumo-Tabular** is first again, then a pack at **119-123 MW**
-- **Recalibration** and **conformal correction** both cut HGB's loss by **6%**
-- **TabICL out of the box** is on par with the corrected HGB quantiles
+- At 24 h, the **corrected HGB quantiles** have the lowest loss: **155.7 and 156.8 MW**, about **-7%** against the raw HGB quantile
+- **Kumo-Tabular** and **Chronos-2** follow at **161 MW**; **TabICL** and **t0-gamma** are no better than the raw HGB quantile
 
-.small.muted[Mean of the 5% and 95% pinball losses, averaged over horizons, 8 folds pooled.
-Tabular models: with the diff features.]
+.small.muted[Tabular models: with the diff features. Chronos-2 and t0-gamma: saved safe-lead runs (not the day-1 stitched runs of the report).]
 
 ???
 
-- Sources: round-2 report ("Pinball loss (MW)": hgb_quantile 130.8, recal 123.3,
-  conformal 122.3, tabicl 120.7, kumo_tabular 109.4) and the "Pareto" page of the
-  comparison (t0-gamma 118.85, Chronos-2 121.74).
-- The percentages are relative to the HGB quantile row, computed on the rounded
-  values.
+- Source: pinball loss at 24 h, averaged over the 5% and 95% quantiles (uncertainty.row_loss
+  on the pooled rows, 8 folds): raw_results/model_comparison/cv_comparison_forecast_fg3 for
+  the tabular models; raw_results/model_comparison/cv_comparison_forecast for Chronos-2 and
+  t0-gamma. The report only has the 24 h pinball as a d2 score, so these two rows are
+  not the report's day-1 stitched runs. TODO: add those prediction files to raw_results and
+  recompute.
+- The percentages are relative to the HGB quantile row, computed on the unrounded values.
 - Recalibration and conformal are post-hoc corrections of the HGB quantiles; they
   multiply the fit time by about 4.6 (HGB q7 2050 s fit vs 9546 s recal, 9508 s
   conformal, diff features).
 - Per horizon, round 2: HGB quantile 93 / 175 / 186 MW (1 h / 12 h / 24 h) before
   and 63 / 160 / 169 after the new features; TabICL 46 / 145 / 171; Kumo-Tabular
   38 / 129 / 161.
-- TODO: paired-difference intervals before claiming a ranking inside the pack.
+- TODO: paired-difference intervals before claiming a ranking inside the 156-171 MW range.
+
 ---
 
 ## Results: coverage and width of the 90% interval
