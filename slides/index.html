@@ -14,7 +14,7 @@
       averaged over the 1h, 12h and 24h horizons, 8 folds pooled:
       - point and pinball results: docs/feature-engineering/round2_selected_groups.html
         (hgb_mean, hgb_quantile, tabicl, kumo_tabular with the diff features) and
-        docs/model-comparison-forecast/cv_comparison_forecast/ (time series models);
+        docs/model-comparison-forecast/cv_comparison_forecast/ (TSFMs);
       - coverage / width and cost: the same comparison report, default features.
       Content marked TODO is a placeholder to refine.
     -->
@@ -64,11 +64,12 @@ Case study: [probabl-ai.github.io/skore-example-electricity-load](https://probab
 
 ## The question
 
-> Tabular and time series foundation models (TFMs) are *advertised* as giving
-> well calibrated probabilistic predictions out of the box.
+> Tabular foundation models (TFMs) and time series foundation models (TSFMs)
+> are *advertised* as giving well calibrated probabilistic predictions out of
+> the box.
 
-**Is that true?** Compared with a classical scikit-learn pipeline, and with
-forecasters built for time series? And at what cost?
+**Is that true?** Compared with a classical scikit-learn pipeline? And at what
+cost?
 
 - Simplicity of development
 - Accuracy of the median forecast
@@ -79,7 +80,8 @@ forecasters built for time series? And at what cost?
 
 - Straight from the abstract and the updated description: a time series
   forecasting problem, a grid of probabilistic regressions over horizons,
-  tabular models and TFMs compared with time-structured features.
+  tabular models (scikit-learn, TFMs) and TSFMs compared with time-structured
+  features.
 
 ---
 
@@ -88,12 +90,11 @@ forecasters built for time series? And at what cost?
 | Model | Family | Output | Inputs |
 | --- | --- | --- | --- |
 | HGB quantile | scikit-learn | 5 / 50 / 95% | feature table |
-| TabICL (8 est.) | tabular TFM | 5 / 50 / 95% | feature table |
-| Kumo-Tabular | tabular TFM | 5 / 50 / 95% | feature table |
-| TabICL forecaster | time series interface | 5 / 50 / 95% | history window + future covariates |
-| Chronos-2 | time series TFM | 5 / 50 / 95% | history window (4000 h) + future covariates |
-| t0-gamma | time series TFM | 5 / 50 / 95% | history window + future covariates |
-| Kumo-Forecast | time series TFM | point only | past-only covariates |
+| HGB quantile + recal / conformal | scikit-learn | 5 / 50 / 95% | feature table |
+| TabICL (8 est.) | TFM | 5 / 50 / 95% | feature table |
+| Kumo-Tabular | TFM | 5 / 50 / 95% | feature table |
+| Chronos-2 | TSFM | 5 / 50 / 95% | history window (4000 h) + future covariates |
+| t0-gamma | TSFM | 5 / 50 / 95% | history window + future covariates |
 | *RTE day-ahead* (baseline) | grid operator | point only, 24 h | proprietary, not a trained model |
 
 ???
@@ -102,8 +103,9 @@ forecasters built for time series? And at what cost?
   case study.
 - Chronos-2 is `amazon/chronos-2`; t0-gamma is `theforecastingcompany/t0-gamma`
   from The Forecasting Company; Kumo models come from `structured-data-models`.
-- Context lengths: Chronos-2 4000 h (from the run tag `chronos2_ctx4000`),
-  TabICL forecaster 1024 h with 4 estimators, Kumo-Forecast 512 h.
+- Context length: Chronos-2 4000 h (from the run tag `chronos2_ctx4000`).
+- Recalibration and conformal correction are two post-hoc ways to fix the
+  coverage of the raw HGB quantiles, both fitted on inner walk-forward folds.
 - The baseline is the ENTSO-E day-ahead load forecast for France, published by
   RTE, the grid operator. It is scored on the same test rows, at the 24 h
   horizon only. It is the number to beat to claim usefulness in operations.
@@ -119,7 +121,7 @@ forecasters built for time series? And at what cost?
   are identical for every model
 - **Weather forecasts** as inputs, not the observed weather
 - Tabular models get a **feature table** built by the shared skrub pipeline
-- Time series models get the **history window** and the future covariates
+- TSFMs get the **history window** and the future covariates
   directly
 
 .placeholder[TODO: diagram of the forecast grid, one axis for prediction time,
@@ -318,8 +320,6 @@ MAPE = mean |y - ŷ| / y      in %, comparable across seasons
 | TabICL (8 est.) | 780 | 1.59% | 1094 | 2.25% | +4% |
 | HGB mean | 786 | 1.61% | 1036 | 2.12% | -1% |
 | Chronos-2 | 821 | 1.70% | 1089 | 2.24% | +4% |
-| TabICL forecaster | 1059 | 2.14% | 1470 | 2.95% | +40% |
-| Kumo-Forecast | 1807 | 3.78% | 2286 | 4.73% | +117% |
 | *RTE day-ahead (baseline)* | – | – | *1051* | *2.17%* | – |
 ]
 
@@ -327,7 +327,8 @@ MAPE = mean |y - ŷ| / y      in %, comparable across seasons
 - Most models are **within 5% of the operator** at 24 h; only Kumo-Tabular and HGB quantile beat it clearly
 
 .small.muted[Average over 1 h / 12 h / 24 h, 8 folds pooled; the operator forecast exists at 24 h only.
-Tabular models: features of the previous section, with the diff groups.]
+Tabular models (HGB, TFMs): features of the previous section, with the diff groups.
+TSFMs: history window and covariates.]
 
 ???
 
@@ -335,7 +336,7 @@ Tabular models: features of the previous section, with the diff groups.]
   hgb_quantile, tabicl, kumo_tabular (MAE 786.4, 757.0, 779.9, 655.5; MAPE
   1.611, 1.554, 1.594, 1.344). The other rows come from the "Walk-forward CV
   comparison" table of docs/model-comparison-forecast (chronos2_ctx4000 821.3,
-  t0_gamma 770.1, tabicl_forecast 1059, kumo_forecast 1807).
+  t0_gamma 770.1).
 - Round 2 added load_diffs, load_same_hour and temp_diffs to every lagged-feature
   model. Default-feature MAE was 872 (hgb_mean), 859 (hgb quantile), 847
   (TabICL), 688 (Kumo-Tabular): the features gave -5% to -12% for HGB and TabICL
@@ -366,8 +367,6 @@ Tabular models: features of the previous section, with the diff groups.]
 | TabICL (8 est.) | 313 | 933 | 1094 | 0.65% | 1.89% | 2.25% |
 | HGB mean | 378 | 946 | 1036 | 0.79% | 1.93% | 2.12% |
 | Chronos-2 | 415 | 960 | 1089 | 0.87% | 1.98% | 2.24% |
-| TabICL forecaster | 382 | 1327 | 1470 | 0.79% | 2.68% | 2.95% |
-| Kumo-Forecast | 1165 | 1969 | 2286 | 2.51% | 4.08% | 4.73% |
 | *RTE day-ahead (baseline)* | – | – | *1051* | – | – | *2.17%* |
 ]
 
@@ -383,8 +382,6 @@ Tabular models: features of the previous section, with the diff groups.]
 - 24 h: HGB quantile 987 MW, HGB mean 1036, TabICL 1094, t0-gamma 1103, Chronos-2
   1089, RTE 1051. The round-2 features gave TabICL no gain at 24 h (+4 MW, 6/8
   folds better on average).
-- Kumo-Forecast is past-only (no future covariates, oracle past weather only),
-  which explains a large part of its error at long horizons.
 - RTE: the operator's forecast for time t is compared with the actual load at
   t; shown only at 24 h.
 ---
@@ -409,9 +406,8 @@ From one number to a 90% prediction interval
   expected 10%.
 - 90% is the nominal level: "calibrated" means that the observed frequency
   matches it over many predictions, not that every point is inside.
-- All the models of the study predict 5%, 50% and 95% (Kumo-Forecast: median
-  only), so that they are scored on exactly the same three quantiles even when
-  they predict more (Kumo returns 999 quantiles, HGB was trained on 7 levels).
+- All the models of the study predict 5%, 50% and 95%, so that they are scored
+  on exactly the same three quantiles even when they predict more (Kumo returns 999 quantiles, HGB was trained on 7 levels).
 ---
 
 ## Simplicity of development
@@ -432,7 +428,7 @@ models = {
     ).fit(X, y)
     for q in (0.05, 0.5, 0.95)
 }
-# + post-hoc recalibration
+# + recalibration or conformal
 ```
 ]
 .right-column[
@@ -454,8 +450,8 @@ preds = model.predict(
 ]
 ]
 
-.small[Time series TFMs skip the feature table: they take a history window and
-future covariates instead.]
+.small[TSFMs skip the feature table: they take a history window and future
+covariates instead.]
 
 ???
 
@@ -522,25 +518,25 @@ L_τ(y, q) = τ · (y - q)         if y ≥ q     (q too low)
 | HGB quantile + conformal | 122.3 | -6% |
 | HGB quantile + recal | 123.3 | -6% |
 | HGB quantile | 130.8 | – |
-| TabICL forecaster | 155.3 | +19% |
 ]
 
 - **Kumo-Tabular** is first again, then a pack at **119-123 MW**
-- **TabICL out of the box** is on par with the **recalibrated** HGB quantiles
+- **Recalibration** and **conformal correction** both cut HGB's loss by **6%**
+- **TabICL out of the box** is on par with the corrected HGB quantiles
 
 .small.muted[Mean of the 5% and 95% pinball losses, averaged over horizons, 8 folds pooled.
-Kumo-Forecast gives no quantiles. Tabular models: with the diff features.]
+Tabular models: with the diff features.]
 
 ???
 
 - Sources: round-2 report ("Pinball loss (MW)": hgb_quantile 130.8, recal 123.3,
   conformal 122.3, tabicl 120.7, kumo_tabular 109.4) and the "Pareto" page of the
-  comparison (t0-gamma 118.85, Chronos-2 121.74, TabICL forecaster 155.30).
+  comparison (t0-gamma 118.85, Chronos-2 121.74).
 - The percentages are relative to the HGB quantile row, computed on the rounded
   values.
 - Recalibration and conformal are post-hoc corrections of the HGB quantiles; they
-  multiply the fit time by about 4 (HGB q7 2154 s vs 8921 s for the recal run).
-  They were not re-run for TabICL with the round-2 features.
+  multiply the fit time by about 4 (HGB q7 2154 s vs 8921 s recal, 9737 s
+  conformal).
 - Per horizon, round 2: HGB quantile 93 / 175 / 186 MW (1 h / 12 h / 24 h) before
   and 63 / 160 / 169 after the new features; TabICL 46 / 145 / 171; Kumo-Tabular
   38 / 129 / 161.
@@ -558,9 +554,8 @@ Nominal coverage 90%. Tabular models: default features
 | --- | ---: | ---: |
 | HGB quantile | 76.7% | 2987 |
 | HGB quantile + recal | 90.3% | 4288 |
+| HGB quantile + conformal | 90.7% | 4293 |
 | TabICL | 87.3% | 3712 |
-| TabICL + recal | 85.1% | 3771 |
-| TabICL forecaster | 88.3% | 4402 |
 | Chronos-2 | 89.3% | 3322 |
 | t0-gamma | **91.6%** | 3361 |
 | Kumo-Tabular | 96.1% | 4313 |
@@ -570,13 +565,14 @@ Nominal coverage 90%. Tabular models: default features
 - Raw HGB quantiles are **over-confident**: ~77% coverage for a nominal 90%
 - **t0-gamma** is closest to nominal with a moderate width
 - **Kumo-Tabular over-covers** (96%) and its intervals are among the widest
-- Recalibration: HGB goes **77% → 90%**; TabICL goes **87% → 85%**
+- **Recalibration** and **conformal correction** both bring HGB from **77%** to **~90%**, at the same width (~4290 MW)
 ]
 ]
 
 ???
 
-- Source: `coverage_90__average` and `width_90__average` rows of the CV report.
+- Source: `coverage_90__average` and `width_90__average` rows of the CV report
+  (hgb_quantile_q7 76.65%, recal 90.31% / 4288, conformal 90.73% / 4293).
 - Read it together with the pinball slide: wide intervals buy coverage.
 - Coverage and width were not re-computed for the round-2 features (diff features):
   the round-2 report only has MAE, MAPE and pinball loss. TODO: rerun the
@@ -592,43 +588,43 @@ Summed over the 8 CV folds
 .num.tight[
 | Model | Fit + predict | Predict only |
 | --- | ---: | ---: |
-| HGB quantile | 36 min | < 1 min |
 | TabICL (8 est.) | 9 min | 8 min |
-| Kumo-Forecast | 10 min | 10 min |
 | t0-gamma | 18 min | 18 min |
 | Kumo-Tabular | 21 min | 21 min |
+| HGB quantile | 36 min | < 1 min |
 | Chronos-2 | 52 min | 52 min |
-| TabICL forecaster | 3 h 21 min | 3 h 21 min |
+| HGB quantile + recal | 2 h 29 min | < 1 min |
+| HGB quantile + conformal | 2 h 42 min | < 1 min |
 ]
 
-- **Time series TFMs and TabICL are inference-bound**: all the cost is at predict
-- Predicting with the TFMs costs about **40× to 1000×** the HGB quantile
-  predict time
+- **TFMs and TSFMs are inference-bound**: all the cost is at predict
+- Predicting with them costs about **40× to 260×** the HGB quantile predict time
+- The HGB corrections multiply its **fit** time by ~4
 
 ???
 
 - Source: pareto.html of the case study (fit + predict and predict-only panels,
   summed over folds). Exact seconds in the notes: HGB quantile 2154 s total,
   11.9 s predict; TabICL 523 s / 460 s; Kumo-Tabular 1273 s / 1270 s;
-  Kumo-Forecast 615 s; t0-gamma 1050 s; Chronos-2 3106 s; TabICL forecaster
-  12051 s.
+  t0-gamma 1050 s; Chronos-2 3106 s; HGB recal 8921 s, conformal 9737 s.
+  Predict ratios against HGB's 11.9 s: TabICL 38x, t0-gamma 88x, Kumo-Tabular
+  107x, Chronos-2 259x.
 - TODO: the HGB quantile fit is slower than TabICL's whole run here. Check the
   HGB config before presenting this.
 - These are default-feature runs; the round-2 tabular models have ~25% more
   features, so the tabular times are slightly optimistic.
-- TODO: hardware differs. The case study runs the forecasters with `--device
+- TODO: hardware differs. The case study runs the TSFMs with `--device
   cuda`, the tabular models without. Say so on the slide or normalise it.
 
 ---
 
 ## Read the comparison with care
 
-- **Weather**: tabular models use day-1 weather forecasts for horizons up to 18 h
-  and day-2 forecasts beyond; Chronos-2, t0-gamma, Kumo-Forecast and the TabICL
-  forecaster always use day-2 forecasts
+- **Weather**: every model gets weather *forecasts*, not observations: day-1 up
+  to 18 h, day-2 beyond
 - **Features**: point and pinball results use the tabular models with the
   diff features; coverage, width and cost are from the default-feature runs
-- **Output**: Kumo-Forecast gives points only, so it is scored on MAPE and MAE
+- **Baseline**: the RTE forecast exists at 24 h only, so it has no average and no quantiles
 - **Hardware**: not normalised across models (see cost slide)
 - **Scope**: one French load series, one 8-fold split, one set of settings per
   model
@@ -637,8 +633,9 @@ Summed over the 8 CV folds
 
 - Source: scripts/model_comparison/README.md, the paragraph on weather
   defaults.
-- Why it matters: the forecaster and tabular models do not see the same
-  weather. The speaker should say so before anyone asks.
+- Chronos-2 and t0-gamma ran with the day1-stitched weather (2026-11-23 rerun):
+  the same day-1 / day-2 rule as the tabular models, for the history window and
+  for the future steps.
 - TODO: say how large the paired differences are, using the block-bootstrap
   intervals from the report.
 
@@ -674,13 +671,13 @@ Point forecast MAPE (average over horizons) vs amount of training history
 
 ## Takeaways
 
-1. Foundation models, tabular and time series, are **competitive with a
-   scikit-learn baseline**; Kumo-Tabular was best here
-2. **Calibration is not free**: raw intervals are close to nominal but not
-   exact; recalibration helped HGB and hurt TabICL
+1. Foundation models, tabular (TFMs) and time series (TSFMs), are **competitive
+   with a scikit-learn baseline**; Kumo-Tabular was best here
+2. **Calibration is not free**: raw HGB quantiles are over-confident (77%);
+   recalibration or conformal correction fix it at ~4× the fit time
 3. Judge with **proper scoring rules**, not coverage alone
-4. The price is **inference**: TFMs cost about 40× to 1000× the prediction
-   time of HGB quantile
+4. The price is **inference**: TFMs and TSFMs cost about 40× to 260× the
+   prediction time of HGB quantile
 
 .todo[TODO] Revise once the paired-difference check and the HGB cost check are done.
 
