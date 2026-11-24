@@ -321,9 +321,10 @@ MAPE = mean |y - ŷ| / y      in %, comparable across seasons
 | *RTE day-ahead (baseline)* | – | – | *1051* | *2.17%* | – |
 ]
 
-- **1 h**: Kumo-Tabular cuts the MAE of HGB quantile by **30%** (256 vs 364 MW)
-- **Kumo-Tabular**: **-12%** MAE against the **operator** at 24 h
-- Most models are **within 5% of the operator** at 24 h; only Kumo-Tabular and HGB quantile beat it clearly
+- **1 h**: Kumo-Tabular is best at **256 MW**, **30%** below HGB quantile (364 MW);
+  t0-gamma and TabICL follow (273 and 313 MW)
+- **24 h**: the gap closes. Only Kumo-Tabular (920 MW, **-12%**) and HGB quantile
+  (987 MW, **-6%**) beat the **operator** (1051 MW); the others are within **+5%**
 
 .small.muted[8 folds pooled; the operator forecast exists at 24 h only.
 Tabular models (HGB, TFMs): features of the previous section, with the diff groups.
