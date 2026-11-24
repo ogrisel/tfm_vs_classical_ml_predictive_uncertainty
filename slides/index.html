@@ -309,18 +309,18 @@ MAPE = mean |y - ŷ| / y      in %, comparable across seasons
 - ENTSO-E day-ahead load forecast for France, issued by RTE, compared with the
   actual load at the target time.
 ---
-## Point forecast results (1/2): MAE and MAPE
+## Point forecast results: MAE and MAPE
 
 .num.tight[
-| Model | MAE 1 h | MAPE 1 h | MAE 24 h | MAPE 24 h | MAE 24 h vs RTE |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| HGB mean | 378 | 0.79% | 1036 | 2.12% | -1% |
-| HGB quantile (median) | 364 | 0.76% | 987 | 2.02% | -6% |
-| TabICL | 313 | 0.65% | 1094 | 2.25% | +4% |
-| **Kumo-Tabular** | **256** | **0.54%** | **920** | **1.88%** | **-12%** |
-| Chronos-2 | 415 | 0.87% | 1089 | 2.24% | +4% |
-| t0-gamma | 273 | 0.57% | 1103 | 2.26% | +5% |
-| *RTE day-ahead (baseline)* | – | – | *1051* | *2.17%* | – |
+| Model | MAE 1 h | 12 h | 24 h | MAPE 1 h | 12 h | 24 h | 24 h vs RTE |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| HGB mean | 378 | 946 | 1036 | 0.79% | 1.93% | 2.12% | -1% |
+| HGB quantile (median) | 364 | 920 | 987 | 0.76% | 1.89% | 2.02% | -6% |
+| TabICL | 313 | 933 | 1094 | 0.65% | 1.89% | 2.25% | +4% |
+| **Kumo-Tabular** | **256** | **791** | **920** | **0.54%** | **1.62%** | **1.88%** | **-12%** |
+| Chronos-2 | 415 | 960 | 1089 | 0.87% | 1.98% | 2.24% | +4% |
+| t0-gamma | 273 | 935 | 1103 | 0.57% | 1.93% | 2.26% | +5% |
+| *RTE day-ahead (baseline)* | – | – | *1051* | – | – | *2.17%* | – |
 ]
 
 - **1 h**: Kumo-Tabular is best at **256 MW**, **30%** below HGB quantile (364 MW);
@@ -336,9 +336,9 @@ TSFMs: history window and covariates.]
 
 - Sources: docs/feature-engineering/round2_selected_groups.html for hgb_mean,
   hgb_quantile, tabicl, kumo_tabular (MAE 786.4, 757.0, 779.9, 655.5; MAPE
-  1.611, 1.554, 1.594, 1.344). The other rows come from the "Walk-forward CV
-  comparison" table of docs/model-comparison-forecast (chronos2_ctx4000 821.3,
-  t0_gamma 770.1).
+  1.611, 1.554, 1.594, 1.344; per-horizon cells as well). The other rows come from
+  the "Walk-forward CV comparison" table of docs/model-comparison-forecast
+  (chronos2_ctx4000 821.3, t0_gamma 770.1; per-horizon cells from the same report).
 - Round 2 added load_diffs, load_same_hour and temp_diffs to every lagged-feature
   model. Default-feature MAE was 872 (hgb_mean), 859 (hgb quantile), 847
   (TabICL), 688 (Kumo-Tabular): the diff features gave -10% (HGB mean), -12%
@@ -350,42 +350,20 @@ TSFMs: history window and covariates.]
   paired differences against the older runs were not significant.
 - TODO: the paired-difference figure with block-bootstrap intervals before saying
   that one model beats another within the 757-786 MW pack.
+- 1 h: (364 - 256) / 364 = -30% for Kumo, (364 - 273) / 364 = -25% for t0-gamma,
+  (364 - 313) / 364 = -14% for TabICL.
+- 24 h: HGB quantile 987 MW, HGB mean 1036, TabICL 1094, t0-gamma 1103, Chronos-2
+  1089, RTE 1051. The round-2 features gave TabICL a gain at 1 h and 12 h but not at
+  24 h (+4 MW, not significant).
 - Operator baseline: MAE 1051 MW, MAPE 2.17% at 24 h (no average, it has no
   1 h or 12 h forecast). "vs RTE" is the 24 h MAE of the model divided by 1051,
   minus one: Kumo-Tabular 920.4 (-12%), HGB quantile 986.9 (-6%), HGB mean
   1035.9 (-1%), TabICL 1094.1 (+4%), Chronos-2 1089 (+4%), t0-gamma 1103 (+5%).
 - Caveat: a day-ahead forecast is issued once a day, so its real lead time
   ranges over 12 h to 36 h; the report files it under 24 h.
-- TODO: "-13%" is (655.5 - 757.0) / 757.0 = -13.4%.
----
-## Point forecast results (2/2): by horizon
-
-.num.tight[
-| Model | MAE 1 h | 12 h | 24 h | MAPE 1 h | 12 h | 24 h |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| HGB mean | 378 | 946 | 1036 | 0.79% | 1.93% | 2.12% |
-| HGB quantile (median) | 364 | 920 | 987 | 0.76% | 1.89% | 2.02% |
-| TabICL | 313 | 933 | 1094 | 0.65% | 1.89% | 2.25% |
-| **Kumo-Tabular** | **256** | **791** | **920** | **0.54%** | **1.62%** | **1.88%** |
-| Chronos-2 | 415 | 960 | 1089 | 0.87% | 1.98% | 2.24% |
-| t0-gamma | 273 | 935 | 1103 | 0.57% | 1.93% | 2.26% |
-| *RTE day-ahead (baseline)* | – | – | *1051* | – | – | *2.17%* |
-]
-
-- **1 h**: Kumo-Tabular, t0-gamma, TabICL cut HGB's MAE by **15-30%**; **24 h**: the gap
-  closes, and only Kumo-Tabular and HGB quantile beat the **RTE baseline**
-
-???
-
-- Same sources as the previous slide. Per-horizon cells: round-2 report for the
-  four tabular models, comparison report for the others.
-- 1 h: (364 - 256) / 364 = -30% for Kumo, (364 - 273) / 364 = -25% for t0-gamma,
-  (364 - 313) / 364 = -14% for TabICL.
-- 24 h: HGB quantile 987 MW, HGB mean 1036, TabICL 1094, t0-gamma 1103, Chronos-2
-  1089, RTE 1051. The round-2 features gave TabICL no gain at 24 h (+4 MW, 6/8
-  folds better on average).
 - RTE: the operator's forecast for time t is compared with the actual load at
   t; shown only at 24 h.
+- TODO: "-13%" is (655.5 - 757.0) / 757.0 = -13.4%.
 ---
 class: dark, middle, section-slide
 
