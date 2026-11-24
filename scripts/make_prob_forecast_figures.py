@@ -131,18 +131,19 @@ COVERAGE_VS_WIDTH = (
 _LABEL_OFFSET = {
     "HGB quantile": (8, 0),
     "Chronos-2": (0, -14),
-    "HGB + recal": (42, 0),
-    "HGB + conformal": (42, -18),
-    "t0-gamma": (42, 18),
     "TabICL": (-8, 12),
     "Kumo-Tabular": (-8, 10),
+}
+# the 91% cluster gets labels in free space on the right, joined by leader lines
+# (data coordinates: coverage %, width MW), stacked in the same order as the points
+_LABEL_AT = {
+    "t0-gamma": (94.6, 5400),
+    "HGB + conformal": (94.6, 4900),
+    "HGB + recal": (94.6, 3900),
 }
 _LABEL_HA = {
     "HGB quantile": "left",
     "Chronos-2": "center",
-    "HGB + recal": "left",
-    "HGB + conformal": "left",
-    "t0-gamma": "left",
     "TabICL": "right",
     "Kumo-Tabular": "right",
 }
@@ -155,7 +156,20 @@ def plot_coverage_vs_width(path: Path, dpi: int) -> None:
     ax.axvline(90, color=GRAY, lw=1, ls="--")
     ax.text(90.4, 3000, "nominal 90%", color=GRAY, fontsize=12, va="bottom")
     for name, width, coverage, color, marker in COVERAGE_VS_WIDTH:
-        ax.scatter([coverage], [width], s=90, color=color, marker=marker, zorder=3, edgecolors=BLUE, linewidths=0.6)
+        ax.scatter([coverage], [width], s=80, color=color, marker=marker, zorder=3, edgecolors=BLUE, linewidths=0.6)
+        if name in _LABEL_AT:
+            ax.annotate(
+                name,
+                (coverage, width),
+                xytext=_LABEL_AT[name],
+                textcoords="data",
+                ha="left",
+                va="center",
+                fontsize=12,
+                color=BLUE,
+                arrowprops=dict(arrowstyle="-", color=GRAY, lw=0.8, shrinkA=4, shrinkB=5),
+            )
+            continue
         dx, dy = _LABEL_OFFSET[name]
         ax.annotate(
             name,
@@ -167,10 +181,16 @@ def plot_coverage_vs_width(path: Path, dpi: int) -> None:
             fontsize=12,
             color=BLUE,
         )
-    ax.set_xlim(72, 104)
-    ax.set_ylim(2800, 7000)
+    # colour key: tabular models are navy, corrected HGB orange, TSFMs light blue
+    for label, color in (("raw tabular", BLUE), ("corrected HGB", ORANGE), ("TSFM", LIGHT_BLUE)):
+        ax.scatter([], [], s=60, color=color, marker="o", edgecolors=BLUE, linewidths=0.6, label=label)
+    legend = ax.legend(loc="upper left", frameon=False, fontsize=11, handletextpad=0.3, borderaxespad=0.2)
+    for text in legend.get_texts():
+        text.set_color(GRAY)
+    ax.set_xlim(74, 101)
+    ax.set_ylim(2900, 6900)
     ax.set_xlabel("coverage at 24 h (%)", color=GRAY, fontsize=13)
-    ax.set_ylabel("90% interval width (MW)   →  wider", color=GRAY, fontsize=13)
+    ax.set_ylabel("90% interval width (MW)", color=GRAY, fontsize=13)
     fig.tight_layout()
     fig.savefig(path, dpi=dpi, facecolor=BEIGE)
     plt.close(fig)
