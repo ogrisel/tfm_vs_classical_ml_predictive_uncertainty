@@ -523,38 +523,39 @@ Tabular models: with the diff features.]
 
 ## Results: coverage and width of the 90% interval
 
-Nominal coverage 90%. Tabular models: with the diff features
+24 h horizon, nominal coverage 90%. Tabular models: with the diff features
 
 .cols[
 .left-column[
 .num[
 | Model | Coverage | Width (MW) |
 | --- | ---: | ---: |
-| HGB quantile | 79.6% | 2750 |
-| HGB quantile + recal | **90.7%** | 3780 |
-| HGB quantile + conformal | 91.1% | 3791 |
-| TabICL | 85.5% | 3231 |
-| Kumo-Tabular | 95.7% | 4127 |
-| Chronos-2 | **89.3%** | 3322 |
-| t0-gamma | 91.6% | 3361 |
+| HGB quantile | 76.2% | 3299 |
+| HGB quantile + recal | **91.1%** | 4843 |
+| HGB quantile + conformal | 91.6% | 4868 |
+| TabICL | 87.5% | 5185 |
+| Kumo-Tabular | 98.4% | 6265 |
+| Chronos-2 | 88.0% | 4373 |
+| t0-gamma | 91.7% | 4974 |
 ]
 ]
 .right-column[
-- Raw HGB quantiles are **over-confident**: ~80% coverage for 90%
-- **Recalibration** and **conformal** bring HGB to **~91%**, at ~3800 MW (raw: ~2750)
-- **Chronos-2** is close to nominal (89%), narrower than the corrected HGB; **Kumo-Tabular** over-covers (96%)
+- Raw HGB quantiles are **over-confident** at 24 h: **76%** coverage for 90%
+- **Recalibration** and **conformal** bring HGB to **~91%**, but the intervals are **~1.5× wider** (4840 vs 3300 MW)
+- **Kumo-Tabular** over-covers (**98%**) with the widest intervals (6265 MW)
 ]
 ]
 
 ???
 
-- Source: `coverage_90__average` and `width_90__average` of the diff-feature
-  comparison (raw_results/model_comparison/cv_comparison_forecast_fg3, scored with
-  compare_predictions.py): hgb_quantile_q7 79.6% / 2750 MW, recal 90.7% / 3780,
-  conformal 91.1% / 3791, tabicl_n8_full 85.5% / 3231, kumo_tabular 95.7% / 4127.
-- Chronos-2 and t0-gamma are from the comparison report (day-1 stitched runs, no
-  lagged features). Their prediction files are not in raw_results: the saved
-  default-weather files give Chronos-2 89.1% / 3338 MW and t0-gamma 91.8% / 3422 MW.
+- Source: `coverage_90__24h` and `width_90__24h` of the diff-feature comparison
+  (raw_results/model_comparison/cv_comparison_forecast_fg3, scored with
+  compare_predictions.py): hgb_quantile_q7 76.23% / 3299 MW, recal 91.05% / 4843,
+  conformal 91.64% / 4868, tabicl_n8_full 87.47% / 5185, kumo_tabular 98.45% / 6265.
+- Chronos-2 and t0-gamma are from the comparison report at 24 h (day-1 stitched runs,
+  no lagged features): Chronos-2 88.0% / 4373 MW, t0-gamma 91.7% / 4974 MW. Their
+  prediction files are not in raw_results: the saved default-weather files give
+  Chronos-2 87.7% / 4405 MW and t0-gamma 92.1% / 5088 MW at 24 h.
   TODO: add the day-1 stitched prediction files to raw_results.
 - Read it together with the pinball slide: wide intervals buy coverage.
 - TODO: add the reliability diagram from calibration.html.
@@ -655,7 +656,7 @@ Point forecast MAPE (average over horizons) vs amount of training history
 
 1. Foundation models, tabular (TFMs) and time series (TSFMs), are **competitive
    with a scikit-learn baseline**; Kumo-Tabular was best here
-2. **Calibration is not free**: raw HGB quantiles are over-confident (80%);
+2. **Calibration is not free**: raw HGB quantiles are over-confident (76% at 24 h);
    recalibration or conformal correction fix it at ~4.6× the fit time
 3. Judge with **proper scoring rules**, not coverage alone
 4. The price is **inference**: TFMs and TSFMs cost about 50× to 270× the
