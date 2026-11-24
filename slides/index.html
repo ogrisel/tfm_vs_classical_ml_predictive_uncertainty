@@ -15,7 +15,9 @@
       - point and pinball results: docs/feature-engineering/round2_selected_groups.html
         (hgb_mean, hgb_quantile, tabicl, kumo_tabular with the diff features) and
         docs/model-comparison-forecast/cv_comparison_forecast/ (TSFMs);
-      - coverage / width and cost: the same comparison report, default features.
+      - coverage / width and cost of the tabular models: the comparison rerun with
+        the diff features (raw_results/model_comparison/cv_comparison_forecast_fg3,
+        scored with the case study compare_predictions.py); TSFMs: the comparison report.
       Content marked TODO is a placeholder to refine.
     -->
     <textarea id="source">
@@ -533,8 +535,8 @@ Tabular models: with the diff features.]
 - The percentages are relative to the HGB quantile row, computed on the rounded
   values.
 - Recalibration and conformal are post-hoc corrections of the HGB quantiles; they
-  multiply the fit time by about 4 (HGB q7 2154 s vs 8921 s recal, 9737 s
-  conformal).
+  multiply the fit time by about 4.6 (HGB q7 2050 s fit vs 9546 s recal, 9508 s
+  conformal, diff features).
 - Per horizon, round 2: HGB quantile 93 / 175 / 186 MW (1 h / 12 h / 24 h) before
   and 63 / 160 / 169 after the new features; TabICL 46 / 145 / 171; Kumo-Tabular
   38 / 129 / 161.
@@ -543,41 +545,41 @@ Tabular models: with the diff features.]
 
 ## Results: coverage and width of the 90% interval
 
-Nominal coverage 90%. Tabular models: default features
+Nominal coverage 90%. Tabular models: with the diff features
 
 .cols[
 .left-column[
 .num[
 | Model | Coverage | Width (MW) |
 | --- | ---: | ---: |
-| HGB quantile | 76.7% | 2987 |
-| HGB quantile + recal | 90.3% | 4288 |
-| HGB quantile + conformal | 90.7% | 4293 |
-| TabICL | 87.3% | 3712 |
-| Kumo-Tabular | 96.1% | 4313 |
-| Chronos-2 | 89.3% | 3322 |
-| t0-gamma | **91.6%** | 3361 |
+| HGB quantile | 79.6% | 2750 |
+| HGB quantile + recal | **90.7%** | 3780 |
+| HGB quantile + conformal | 91.1% | 3791 |
+| TabICL | 85.5% | 3231 |
+| Kumo-Tabular | 95.7% | 4127 |
+| Chronos-2 | **89.3%** | 3322 |
+| t0-gamma | 91.6% | 3361 |
 ]
 ]
 .right-column[
-- Raw HGB quantiles are **over-confident**: ~77% coverage for a nominal 90%
-- **t0-gamma** is closest to nominal with a moderate width
-- **Kumo-Tabular over-covers** (96%) and its intervals are among the widest
-- **Recalibration** and **conformal correction** both bring HGB from **77%** to **~90%**, at the same width (~4290 MW)
+- Raw HGB quantiles are **over-confident**: ~80% coverage for a nominal 90%
+- **Recalibration** and **conformal correction** bring HGB from **80%** to **~91%**, at ~3800 MW (raw: ~2750 MW)
+- **Chronos-2** is close to nominal (89%) with a narrower interval than the corrected HGB models
+- **Kumo-Tabular over-covers** (96%) and its intervals are the widest (~4100 MW)
 ]
 ]
 
 ???
 
-- Source: `coverage_90__average` and `width_90__average` rows of the CV report
-  (hgb_quantile_q7 76.65%, recal 90.31% / 4288, conformal 90.73% / 4293).
+- Source: `coverage_90__average` and `width_90__average` of the diff-feature
+  comparison (raw_results/model_comparison/cv_comparison_forecast_fg3, scored with
+  compare_predictions.py): hgb_quantile_q7 79.6% / 2750 MW, recal 90.7% / 3780,
+  conformal 91.1% / 3791, tabicl_n8_full 85.5% / 3231, kumo_tabular 95.7% / 4127.
+- Chronos-2 and t0-gamma are from the comparison report (day-1 stitched runs, no
+  lagged features). Their prediction files are not in raw_results: the saved
+  default-weather files give Chronos-2 89.1% / 3338 MW and t0-gamma 91.8% / 3422 MW.
+  TODO: add the day-1 stitched prediction files to raw_results.
 - Read it together with the pinball slide: wide intervals buy coverage.
-- Coverage and width are not available for the round-2 features (diff features):
-  the round-2 report only has MAE, MAPE and pinball loss, and the raw
-  `results/feature_engineering/round2_selected_groups/*_fg3_*` runs are not in
-  the case-study repo (gitignored). TODO: recompute coverage, width and cost
-  from those runs, or rerun the comparison report with the new tabular models,
-  and switch this slide to them.
 - TODO: add the reliability diagram from calibration.html.
 
 ---
@@ -589,31 +591,33 @@ Summed over the 8 CV folds
 .num.tight[
 | Model | Fit + predict | Predict only |
 | --- | ---: | ---: |
-| HGB quantile | 36 min | < 1 min |
-| HGB quantile + recal | 2 h 29 min | < 1 min |
-| HGB quantile + conformal | 2 h 42 min | < 1 min |
-| TabICL | 9 min | 8 min |
-| Kumo-Tabular | 21 min | 21 min |
+| HGB quantile | 34 min | < 1 min |
+| HGB quantile + recal | 2 h 39 min | < 1 min |
+| HGB quantile + conformal | 2 h 39 min | < 1 min |
+| TabICL | 11 min | 9 min |
+| Kumo-Tabular | 24 min | 24 min |
 | Chronos-2 | 52 min | 52 min |
 | t0-gamma | 18 min | 18 min |
 ]
 
 - **TFMs and TSFMs are inference-bound**: all the cost is at predict
-- Predicting with them costs about **40× to 260×** the HGB quantile predict time
-- The HGB corrections multiply its **fit** time by ~4
+- Predicting with them costs about **50× to 270×** the HGB quantile predict time
+- The HGB corrections multiply its **fit** time by ~4.6
 
 ???
 
-- Source: pareto.html of the case study (fit + predict and predict-only panels,
-  summed over folds). Exact seconds in the notes: HGB quantile 2154 s total,
-  11.9 s predict; TabICL 523 s / 460 s; Kumo-Tabular 1273 s / 1270 s;
-  t0-gamma 1050 s; Chronos-2 3106 s; HGB recal 8921 s, conformal 9737 s.
-  Predict ratios against HGB's 11.9 s: TabICL 38x, t0-gamma 88x, Kumo-Tabular
-  107x, Chronos-2 259x.
+- Sources: the per-fold timings (scores CSV, summed over folds) of the diff-feature
+  runs in raw_results/feature_engineering/round2_selected_groups (HGB, TabICL,
+  Kumo-Tabular) and of the comparison report (Chronos-2, t0-gamma, from pareto.html).
+  Exact seconds: HGB quantile 2062 s total (2050 s fit, 11.6 s predict);
+  HGB recal 9559 s, conformal 9520 s; TabICL 632 s (558 s predict);
+  Kumo-Tabular 1439 s (1435 s predict); t0-gamma 1050 s; Chronos-2 3106 s.
+  Predict ratios against HGB's 11.6 s: TabICL 48x, t0-gamma 90x, Kumo-Tabular
+  124x, Chronos-2 268x.
 - TODO: the HGB quantile fit is slower than TabICL's whole run here. Check the
   HGB config before presenting this.
-- These are default-feature runs; the round-2 tabular models have ~25% more
-  features, so the tabular times are slightly optimistic.
+- The tabular times are the diff-feature runs, the same features as the results
+  on the other slides.
 - TODO: hardware differs. The case study runs the TSFMs with `--device
   cuda`, the tabular models without. Say so on the slide or normalise it.
 
@@ -623,8 +627,8 @@ Summed over the 8 CV folds
 
 - **Weather**: every model gets weather *forecasts*, not observations: day-1 up
   to 18 h, day-2 beyond
-- **Features**: point and pinball results use the tabular models with the
-  diff features; coverage, width and cost are from the default-feature runs
+- **Features**: the tabular models (HGB, TabICL, Kumo-Tabular) use the diff
+  features in every result; the TSFMs take the raw load history and do not use them
 - **Baseline**: the RTE forecast exists at 24 h only, so it has no average and no quantiles
 - **Hardware**: not normalised across models (see cost slide)
 - **Scope**: one French load series, one 8-fold split, one set of settings per
@@ -674,10 +678,10 @@ Point forecast MAPE (average over horizons) vs amount of training history
 
 1. Foundation models, tabular (TFMs) and time series (TSFMs), are **competitive
    with a scikit-learn baseline**; Kumo-Tabular was best here
-2. **Calibration is not free**: raw HGB quantiles are over-confident (77%);
-   recalibration or conformal correction fix it at ~4× the fit time
+2. **Calibration is not free**: raw HGB quantiles are over-confident (80%);
+   recalibration or conformal correction fix it at ~4.6× the fit time
 3. Judge with **proper scoring rules**, not coverage alone
-4. The price is **inference**: TFMs and TSFMs cost about 40× to 260× the
+4. The price is **inference**: TFMs and TSFMs cost about 50× to 270× the
    prediction time of HGB quantile
 
 .todo[TODO] Revise once the paired-difference check and the HGB cost check are done.
