@@ -115,18 +115,15 @@ cost?
 
 ---
 
-## Forecasting as a grid of probabilistic regressions
+## Forecasting as multi-horizon regression
 
-- Predict the load **1 h, 12 h and 24 h** ahead, as **5%, 50% and 95%** quantiles
+- Predict the load **1 h, 12 h and 24 h** ahead, with one model per horizon
 - **Walk-forward CV**, 8 folds, with a gap between train and test; test dates
   are identical for every model
 - **Weather forecasts** as inputs, not the observed weather
 - Tabular models get a **feature table** built by the shared skrub pipeline
 - TSFMs get the **history window** and the future covariates
   directly
-
-.placeholder[TODO: diagram of the forecast grid, one axis for prediction time,
-one for horizon]
 
 ???
 
