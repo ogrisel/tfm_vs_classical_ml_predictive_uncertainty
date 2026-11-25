@@ -745,10 +745,12 @@ Lower and further left is better. The dashed line is the Pareto frontier.
 
 1. Foundation models, tabular (TFMs) and time series (TSFMs), are **competitive
    with a scikit-learn baseline**; Kumo-Tabular was best here
-2. **Calibration is not free**: raw HGB quantiles are over-confident (85% at 1 h, 76% at 24 h);
+2. **Tabular models**, classical or foundation, can **rival the TSFMs** with **proper
+   feature engineering**: the diff features alone cut HGB's 1 h pinball loss from 93 to 63 MW
+3. **Calibration is not free**: raw HGB quantiles are over-confident (85% at 1 h, 76% at 24 h);
    recalibration or conformal correction fix it at about **5×** the fit time
-3. Judge with **proper scoring rules**, not coverage alone
-4. The price is **inference**: TFMs and TSFMs cost about 50× to 270× the
+4. Judge with **proper scoring rules**, not coverage alone
+5. The price is **inference**: TFMs and TSFMs cost about 50× to 270× the
    prediction time of HGB quantile
 
 .todo[TODO] Revise once the paired-difference check is folded into the ranking.
