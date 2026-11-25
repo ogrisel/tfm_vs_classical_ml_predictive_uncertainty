@@ -740,27 +740,6 @@ Lower and further left is better. The dashed line is the Pareto frontier.
 
 ---
 
-## Read the comparison with care
-
-- **Weather**: every model gets weather *forecasts*, not observations: day-1 up
-  to 18 h, day-2 beyond
-- **Baseline**: the RTE forecast exists at 24 h only, so it has no average and no quantiles
-- **Hardware**: not normalised across models (see cost slide)
-- **Scope**: one French load series, one 8-fold split, one set of settings per
-  model
-
-???
-
-- Source: scripts/model_comparison/README.md, the paragraph on weather
-  defaults.
-- Chronos-2 and t0-gamma ran with the day1-stitched weather (2026-11-23 rerun):
-  the same day-1 / day-2 rule as the tabular models, for the history window and
-  for the future steps.
-- TODO: say how large the paired differences are, using the block-bootstrap
-  intervals from the report.
-
----
-
 ## Small vs large sample size
 
 Point forecast MAPE (average over horizons) vs amount of training history
