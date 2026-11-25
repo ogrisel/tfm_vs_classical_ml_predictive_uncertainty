@@ -121,17 +121,27 @@ cost?
 
 ## Forecasting as multi-horizon regression
 
+- **Load**: hourly French total load, 2021 to 2025, from ENTSO-E
+- **Weather**: 10 French cities, day-1 and day-2 **forecasts**, not observations
 - Predict the load **1 h, 12 h and 24 h** ahead, with one model per horizon
 - **Walk-forward CV**, 8 folds, with a gap between train and test; test dates
   are identical for every model
-- **Weather forecasts** as inputs, not the observed weather
 - Tabular models get a **feature table** built by the shared skrub pipeline
 - TSFMs get the **history window** and the future covariates
   directly
 
 ???
 
-- Source: src/electricity_load_forecasting/pipeline.py (`make_data_op`) and
+- Load source: ENTSO-E Transparency, "Total Load - Day Ahead / Actual", bidding zone
+  France, hourly UTC, exported by hand (datasets/README.md in the case study). The same
+  file has the **day-ahead total load forecast** published by RTE, the grid operator: that
+  is the baseline on the point and pinball slides.
+- Weather source: Open-Meteo. Historical data for the 10 cities; the day-1 and day-2 files
+  are the GFS 2 m temperature forecasts issued 24 h and 48 h before the valid time (the
+  Previous Runs API, JMA GSM fills gaps in the GFS archive). Open-Meteo is CC BY 4.0,
+  free tier for non-commercial use (datasets/README.md; scripts/fetch_weather_forecasts.py).
+- Coverage: load 2021 to 2025; weather from 2021-01-01 to 2025-05-31 (datasets/README.md).
+- Source for the pipeline: src/electricity_load_forecasting/pipeline.py (`make_data_op`) and
   splitter.py in the case study.
 - Same scoring for all models, so reports are comparable.
 
