@@ -20,7 +20,7 @@
         with the diff features (raw_results/model_comparison/cv_comparison_forecast_fg3,
         scored with the case study compare_predictions.py); TSFMs: the comparison report
         (pinball in MW: the saved prediction files, see the slide notes);
-      - bonus slides (paired differences, critical difference diagrams): computed by
+      - bonus slides (paired differences): computed by
         scripts/paired_differences.py from the same prediction files, 17,466 rows aligned
         across the seven models, with the block bootstrap of the case study uncertainty.py.
       Content marked TODO is a placeholder to refine.
@@ -947,38 +947,6 @@ Pinball loss, 95% block-bootstrap intervals. Hollow: not separable from the best
 - Kumo-Tabular over-covers at 24 h (98%) and Chronos-2 under-covers (88%): see the coverage
   slide. The pinball loss does not separate them from a corrected HGB.
 - Same caveats as the 1 h slide.
-
----
-
-## Critical difference diagrams
-
-A bar joins models that the Nemenyi test cannot separate.
-
-<img class="fig" style="width: 56%" alt="Critical difference diagrams of the pinball loss at 1 h and 24 h" src="assets/prob_forecast/critical_difference.png" />
-
-- **1 h**: **TabICL** is joined to the lower group, which the paired test rejects
-- **24 h**: **one bar** for everything (Friedman p = 0.19)
-- Only **8 folds**, **not independent**: little power
-
-???
-
-- Why this is a weaker tool here: a critical difference diagram (Demsar 2006) compares
-  mean ranks over independent datasets. Our 8 folds are consecutive time windows that share
-  training data, and 8 is few: the Nemenyi critical difference is 3.19 ranks for 7 models
-  and 8 folds (q_0.05 = 2.949), nearly half of the 1-to-7 rank range.
-- The Wilcoxon-Holm alternative cannot reject anything here: with 8 folds the smallest
-  two-sided exact p-value is 2/256 = 0.0078, above the Holm threshold 0.05/21 = 0.0024 for
-  the 21 pairwise tests.
-- Mean ranks, 1 h: Kumo-Tabular 1.62, t0-gamma 1.88, TabICL 2.50, HGB conformal 5.38, HGB
-  quantile 5.50, Chronos-2 5.50, HGB recal 5.62. Friedman p < 0.001.
-- Mean ranks, 24 h: HGB conformal 3.00, HGB recal 3.12, Chronos-2 3.62, Kumo-Tabular 3.88,
-  TabICL 4.00, HGB quantile 4.75, t0-gamma 5.62. Friedman p = 0.19.
-- At 1 h TabICL is within 3.19 ranks of the four lower models (3.12 from the worst), so it
-  shares a bar with them, while the block bootstrap puts TabICL clearly ahead of raw HGB
-  (-16.9 MW, lower in 8 of 8 folds). The two views agree on the order and on the two
-  groups; the paired intervals have more power.
-- The block bootstrap resamples days within the folds, so it uses 17,466 rows, not 8 folds.
-  It also keeps the magnitude of the differences.
 
 ---
 
