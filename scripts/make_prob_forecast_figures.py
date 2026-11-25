@@ -4,7 +4,7 @@
 # ///
 """Illustrations for the probabilistic forecast slides.
 
-Generates five figures in ``slides/assets/prob_forecast``:
+Generates six figures in ``slides/assets/prob_forecast``:
 
 - ``interval.png``: a synthetic daily load curve with its median forecast and
   the 90% prediction interval (5% and 95% quantiles). Roughly one observation
@@ -14,8 +14,9 @@ Generates five figures in ``slides/assets/prob_forecast``:
   ``y - q`` for ``tau`` = 5%, 50% and 95%.
 - ``coverage_vs_width_1h.png`` and ``coverage_vs_width_24h.png``: 90% coverage
   against interval width at the 1 h and 24 h horizons, one point per model.
-- ``cost_vs_pinball_24h.png``: 24 h pinball loss against fit + predict time,
-  with the Pareto frontier.
+- ``pinball_vs_fit_predict_24h.png`` and ``pinball_vs_predict_24h.png``: 24 h
+  pinball loss against the fit + predict time and against the predict time only,
+  each with its Pareto frontier.
 
 Usage::
 
@@ -221,29 +222,56 @@ def plot_coverage_vs_width(path: Path, dpi: int, horizon: int) -> None:
     plt.close(fig)
 
 
-# 24 h horizon, 8 folds pooled. Cost: fit + predict time summed over the 8 folds,
-# in seconds (diff-feature runs for the tabular models, the comparison report for
-# the TSFMs). Pinball loss: mean of the 5% and 95% levels, in MW.
-# Each point is (name, seconds, pinball MW, colour, marker).
+# 24 h horizon, 8 folds pooled. Cost: time summed over the 8 folds, in seconds
+# (diff-feature runs for the tabular models, the comparison report for the TSFMs,
+# whose fit step is negligible so their predict time is their total time). Pinball
+# loss: mean of the 5% and 95% levels, in MW.
+# Each point is (name, fit + predict s, predict s, pinball MW, colour, marker).
 COST_VS_PINBALL = (
-    ("HGB quantile", 2062, 169.0, BLUE, "o"),
-    ("HGB + recal", 9559, 156.8, ORANGE, "o"),
-    ("HGB + conformal", 9520, 155.7, ORANGE, "s"),
-    ("TabICL", 632, 171.0, BLUE, "D"),
-    ("Kumo-Tabular", 1439, 160.7, BLUE, "D"),
-    ("Chronos-2", 3106, 160.8, LIGHT_BLUE, "^"),
-    ("t0-gamma", 1050, 174.2, LIGHT_BLUE, "^"),
+    ("HGB quantile", 2062, 11.6, 169.0, BLUE, "o"),
+    ("HGB + recal", 9559, 12.2, 156.8, ORANGE, "o"),
+    ("HGB + conformal", 9520, 12.0, 155.7, ORANGE, "s"),
+    ("TabICL", 632, 558.0, 171.0, BLUE, "D"),
+    ("Kumo-Tabular", 1439, 1434.6, 160.7, BLUE, "D"),
+    ("Chronos-2", 3106, 3106, 160.8, LIGHT_BLUE, "^"),
+    ("t0-gamma", 1050, 1050, 174.2, LIGHT_BLUE, "^"),
 )
 
-# (dx, dy in points, ha): placed to stay off the frontier line
-_COST_LABELS = {
-    "HGB quantile": (9, 0, "left"),
-    "HGB + recal": (9, 7, "left"),
-    "HGB + conformal": (-9, -2, "right"),
-    "TabICL": (0, 14, "center"),
-    "Kumo-Tabular": (0, -15, "center"),
-    "Chronos-2": (0, 14, "center"),
-    "t0-gamma": (9, 0, "left"),
+# Per cost kind: which column to use, axis settings, legend anchor and label
+# placement. Labels are (dx, dy in points, ha), placed to stay off the frontier line.
+_COST_KINDS = {
+    "fit_predict": {
+        "column": 1,
+        "xlim": (8, 300),
+        "ticks": [10, 20, 50, 100, 200],
+        "xlabel": "fit + predict time over the 8 folds (min, log scale)",
+        "legend": {"loc": "upper right"},
+        "labels": {
+            "HGB quantile": (9, 0, "left"),
+            "HGB + recal": (9, 7, "left"),
+            "HGB + conformal": (-9, -2, "right"),
+            "TabICL": (0, 14, "center"),
+            "Kumo-Tabular": (0, -15, "center"),
+            "Chronos-2": (0, 14, "center"),
+            "t0-gamma": (9, 0, "left"),
+        },
+    },
+    "predict": {
+        "column": 2,
+        "xlim": (0.12, 120),
+        "ticks": [0.2, 0.5, 1, 2, 5, 10, 20, 50, 100],
+        "xlabel": "predict time over the 8 folds (min, log scale)",
+        "legend": {"loc": "upper left", "bbox_to_anchor": (0.34, 1.0)},
+        "labels": {
+            "HGB quantile": (10, 2, "left"),
+            "HGB + recal": (10, 9, "left"),
+            "HGB + conformal": (10, -9, "left"),
+            "TabICL": (0, 14, "center"),
+            "Kumo-Tabular": (0, -15, "center"),
+            "Chronos-2": (0, 14, "center"),
+            "t0-gamma": (0, 14, "center"),
+        },
+    },
 }
 
 
@@ -257,22 +285,25 @@ def pareto_frontier(points):
     return frontier
 
 
-def plot_cost_vs_pinball(path: Path, dpi: int) -> None:
-    """24 h pinball loss against total fit + predict time, with the Pareto frontier."""
+def plot_cost_vs_pinball(path: Path, dpi: int, kind: str) -> None:
+    """24 h pinball loss against a time cost (``kind``), with the Pareto frontier."""
     from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator
 
+    cfg = _COST_KINDS[kind]
+    col = cfg["column"]
+    xmin, xmax = cfg["xlim"]
     fig, ax = plt.subplots(figsize=(9.2, 3.1), facecolor=BEIGE)
     _style(ax)
-    xmax = 300
-    frontier = pareto_frontier([(sec / 60, loss) for _, sec, loss, _, _ in COST_VS_PINBALL])
+    frontier = pareto_frontier([(row[col] / 60, row[3]) for row in COST_VS_PINBALL])
     xs, ys = zip(*frontier)
     ax.step(
         [*xs, xmax], [*ys, ys[-1]], where="post", color=GRAY, lw=1.3, ls="--", zorder=1, label="Pareto frontier"
     )
-    for name, sec, loss, color, marker in COST_VS_PINBALL:
-        minutes = sec / 60
+    for row in COST_VS_PINBALL:
+        name, loss, color, marker = row[0], row[3], row[4], row[5]
+        minutes = row[col] / 60
         ax.scatter([minutes], [loss], s=80, color=color, marker=marker, zorder=3, edgecolors=BLUE, linewidths=0.6)
-        dx, dy, ha = _COST_LABELS[name]
+        dx, dy, ha = cfg["labels"][name]
         ax.annotate(
             name,
             (minutes, loss),
@@ -291,21 +322,21 @@ def plot_cost_vs_pinball(path: Path, dpi: int) -> None:
     legend = ax.legend(
         [handles[i] for i in order],
         [labels[i] for i in order],
-        loc="upper right",
         frameon=False,
         fontsize=11,
         handletextpad=0.5,
         borderaxespad=0.2,
+        **cfg["legend"],
     )
     for text in legend.get_texts():
         text.set_color(GRAY)
     ax.set_xscale("log")
-    ax.xaxis.set_major_locator(FixedLocator([10, 20, 50, 100, 200]))
+    ax.xaxis.set_major_locator(FixedLocator(cfg["ticks"]))
     ax.xaxis.set_minor_locator(NullLocator())
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
-    ax.set_xlim(8, xmax)
+    ax.set_xlim(xmin, xmax)
     ax.set_ylim(153, 177.5)
-    ax.set_xlabel("fit + predict time over the 8 folds (min, log scale)", color=GRAY, fontsize=13)
+    ax.set_xlabel(cfg["xlabel"], color=GRAY, fontsize=13)
     ax.set_ylabel("24 h pinball loss (MW)", color=GRAY, fontsize=13)
     fig.tight_layout()
     fig.savefig(path, dpi=dpi, facecolor=BEIGE)
@@ -322,7 +353,8 @@ def main() -> None:
     plot_pinball(args.outdir / "pinball.png", args.dpi)
     for horizon in (1, 24):
         plot_coverage_vs_width(args.outdir / f"coverage_vs_width_{horizon}h.png", args.dpi, horizon)
-    plot_cost_vs_pinball(args.outdir / "cost_vs_pinball_24h.png", args.dpi)
+    plot_cost_vs_pinball(args.outdir / "pinball_vs_fit_predict_24h.png", args.dpi, "fit_predict")
+    plot_cost_vs_pinball(args.outdir / "pinball_vs_predict_24h.png", args.dpi, "predict")
     print(f"wrote figures in {args.outdir}")
 
 
