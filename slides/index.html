@@ -760,9 +760,15 @@ Point forecast MAPE (average over horizons) vs amount of training history
 
 ???
 
-- Source: docs/history-length/report/index.html, which is marked
-  "Work in progress" (see results/history_length/WARNING.md in the repo).
-  Do not present as definitive before Jérôme re-runs it.
+- Source: docs/history-length/report/index.html (case study), built by
+  scripts/history_length/build_report.py from the output of cross_validate_history.py
+  (results/history_length/, not in this checkout). Numbers checked against the report: MAPE
+  average over horizons, HGB mean and TabICL median, 8 folds pooled, test dates identical.
+- The report is marked "Work in progress: do not take these results at face value. This
+  study confounds training-history length with seasonal coverage, reuses a row from a
+  different run, and shows no uncertainty." The "reuses a row" caveat is not on the slide;
+  I could not identify the row from the repo. Do not present as definitive before Jérôme
+  re-runs it.
 - Only HGB and TabICL are covered. TODO: the same sweep for Chronos-2, t0-gamma
   and Kumo, if it is feasible before the talk.
 
