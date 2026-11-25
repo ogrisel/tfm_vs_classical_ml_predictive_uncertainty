@@ -4,7 +4,7 @@
 # ///
 """Illustrations for the probabilistic forecast slides.
 
-Generates ten figures in ``slides/assets/prob_forecast``:
+Generates nine figures in ``slides/assets/prob_forecast``:
 
 - ``interval.png``: a synthetic daily load curve with its median forecast and
   the 90% prediction interval (5% and 95% quantiles). Roughly one observation
@@ -22,9 +22,6 @@ Generates ten figures in ``slides/assets/prob_forecast``:
   each with its Pareto frontier.
 - ``paired_to_best_1h.png`` and ``paired_to_best_24h.png``: paired pinball-loss
   differences to the best model, with block-bootstrap intervals.
-- ``critical_difference.png``: critical difference diagrams (Nemenyi) of the
-  per-fold pinball ranks at 1 h and 24 h.
-  The numbers come from ``scripts/paired_differences.py``.
 
 Usage::
 
@@ -495,92 +492,6 @@ def plot_paired_to_best(path: Path, dpi: int, horizon: int) -> None:
     plt.close(fig)
 
 
-# Per-fold mean ranks of the pinball loss (8 folds), the Friedman p-value and the
-# Nemenyi critical difference for 7 models and 8 folds (q_0.05 = 2.949, Demsar 2006).
-# Computed by scripts/paired_differences.py from raw_results.
-NEMENYI_CD = 3.19
-MEAN_RANKS = {
-    1: (
-        "Friedman p < 0.001",
-        {
-            "Kumo-Tabular": 1.62,
-            "t0-gamma": 1.88,
-            "TabICL": 2.50,
-            "HGB + conformal": 5.38,
-            "HGB quantile": 5.50,
-            "Chronos-2": 5.50,
-            "HGB + recal": 5.62,
-        },
-    ),
-    24: (
-        "Friedman p = 0.19",
-        {
-            "HGB + conformal": 3.00,
-            "HGB + recal": 3.12,
-            "Chronos-2": 3.62,
-            "Kumo-Tabular": 3.88,
-            "TabICL": 4.00,
-            "HGB quantile": 4.75,
-            "t0-gamma": 5.62,
-        },
-    ),
-}
-
-
-def _cliques(ranks: list[float], cd: float) -> list[tuple[int, int]]:
-    """Maximal runs of consecutive sorted ranks whose spread is below ``cd``."""
-    runs = []
-    for i in range(len(ranks)):
-        j = i
-        while j + 1 < len(ranks) and ranks[j + 1] - ranks[i] < cd:
-            j += 1
-        if j > i and not any(a <= i and j <= b for a, b in runs):
-            runs.append((i, j))
-    return runs
-
-
-def plot_critical_difference(path: Path, dpi: int) -> None:
-    """Critical difference diagrams (Nemenyi) of the pinball loss, at 1 h and 24 h."""
-    fig, axes = plt.subplots(2, 1, figsize=(9.0, 4.7), facecolor=BEIGE)
-    for ax, horizon in zip(axes, (1, 24)):
-        note, ranks = MEAN_RANKS[horizon]
-        names = sorted(ranks, key=ranks.get)
-        values = [ranks[n] for n in names]
-        half = (len(names) + 1) // 2
-        ax.set_facecolor(BEIGE)
-        ax.axis("off")
-        ax.set_xlim(-1.9, 9.6)
-        ax.set_ylim(-3.1, 2.5)
-        # rank axis
-        ax.plot([1, 7], [0, 0], color=BLUE, lw=1.5)
-        for tick in range(1, 8):
-            ax.plot([tick, tick], [0, 0.12], color=BLUE, lw=1.5)
-            ax.text(tick, 0.2, str(tick), ha="center", va="bottom", fontsize=12, color=BLUE)
-        ax.text(4, 1.95, f"{horizon} h pinball loss: mean rank over 8 folds ({note})", ha="center", fontsize=12.5, color=BLUE)
-        # critical difference bar
-        ax.plot([1, 1 + NEMENYI_CD], [1.25, 1.25], color=GRAY, lw=2)
-        ax.plot([1, 1], [1.17, 1.33], color=GRAY, lw=2)
-        ax.plot([1 + NEMENYI_CD] * 2, [1.17, 1.33], color=GRAY, lw=2)
-        ax.text(1 + NEMENYI_CD + 0.1, 1.25, f"CD = {NEMENYI_CD}", va="center", fontsize=11, color=GRAY)
-        # labels: best half on the left, the rest on the right, elbow lines
-        for i, (name, rank) in enumerate(zip(names, values)):
-            if i < half:
-                depth = 0.55 + 0.55 * (i + 1)
-                label_x, ha = 0.85, "right"
-            else:
-                depth = 0.55 + 0.55 * (len(names) - i)
-                label_x, ha = 7.15, "left"
-            ax.plot([rank, rank, label_x], [0, -depth, -depth], color=BLUE, lw=1)
-            ax.text(label_x + (-0.08 if ha == "right" else 0.08), -depth, name, ha=ha, va="center", fontsize=12, color=BLUE)
-        # cliques: thick bars under the axis joining models that are not separable
-        for k, (a, b) in enumerate(_cliques(values, NEMENYI_CD)):
-            y = -0.2 - 0.17 * k
-            ax.plot([values[a] - 0.04, values[b] + 0.04], [y, y], color=ORANGE, lw=5, solid_capstyle="round", zorder=3)
-    fig.tight_layout()
-    fig.savefig(path, dpi=dpi, facecolor=BEIGE)
-    plt.close(fig)
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--outdir", type=Path, default=REPO / "slides/assets/prob_forecast")
@@ -596,7 +507,6 @@ def main() -> None:
     plot_cost_vs_pinball(args.outdir / "pinball_vs_predict_24h.png", args.dpi, "predict")
     for horizon in (1, 24):
         plot_paired_to_best(args.outdir / f"paired_to_best_{horizon}h.png", args.dpi, horizon)
-    plot_critical_difference(args.outdir / "critical_difference.png", args.dpi)
     print(f"wrote figures in {args.outdir}")
 
 
