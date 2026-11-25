@@ -59,6 +59,9 @@ slides/
 └── vendor/remark.min.js   # vendored so the talk works offline
 ```
 
+The hosted version, published from `slides/` by GitHub Pages on every push to
+`main`, is at <https://ogrisel.github.io/tfm_vs_classical_ml_predictive_uncertainty/>.
+
 To view or present, just open `slides/index.html` in a browser (no server
 needed). Useful keys: `P` presenter mode (notes + timer), `C` clone the view to
 a second window, `F` fullscreen, `?` help.
