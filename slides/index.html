@@ -602,9 +602,9 @@ Nominal coverage 90%. Pinball loss is the mean of the 5% and 95% quantiles.
   recompute.
 - The percentages are relative to the HGB quantile row, computed on the unrounded values.
   Bold: the lowest pinball loss.
-- Recalibration and conformal are post-hoc corrections of the HGB quantiles; they
-  multiply the fit time by about 4.6 (HGB q7 2050 s fit vs 9546 s recal, 9508 s
-  conformal, diff features).
+- Recalibration and conformal are post-hoc corrections of the HGB quantiles. Each
+  reruns the model in a nested cross-validation, so say **5×** the fit time. Measured
+  ratio is 4.6× (HGB q7 2050 s fit vs 9546 s recal, 9508 s conformal).
 - Per horizon, round 2: HGB quantile 93 / 175 / 186 MW (1 h / 12 h / 24 h) before
   and 63 / 160 / 169 after the new features; TabICL 46 / 145 / 171; Kumo-Tabular
   38 / 129 / 161.
@@ -659,7 +659,7 @@ Summed over the 8 CV folds
 
 - **TFMs and TSFMs are inference-bound**: all the cost is at predict
 - Predicting with them costs about **50× to 270×** the HGB quantile predict time
-- The HGB corrections multiply its **fit** time by ~4.6
+- **Calibration** costs about **5×** the HGB fit time: a nested cross-validation
 
 ???
 
@@ -671,8 +671,9 @@ Summed over the 8 CV folds
   Kumo-Tabular 1439 s (1435 s predict); t0-gamma 1050 s; Chronos-2 3106 s.
   Predict ratios against HGB's 11.6 s: TabICL 48x, t0-gamma 90x, Kumo-Tabular
   124x, Chronos-2 268x.
-- TODO: the HGB quantile fit is slower than TabICL's whole run here. Check the
-  HGB config before presenting this.
+- The 5× is the nested cross-validation inside recalibration and conformal
+  correction (pipeline._recalibrator_cv, a TimeSeriesSplitter on the training rows).
+  The measured ratio is 4.6× (2050 s fit vs 9546 s recal, 9508 s conformal).
 - The tabular times are the diff-feature runs, the same features as the results
   on the other slides.
 - TODO: hardware differs. The case study runs the TSFMs with `--device
@@ -702,9 +703,9 @@ Lower and further left is better. The dashed line is the Pareto frontier.
   is noise; its cost is 2x. HGB recal is dominated by HGB conformal by 1.1 MW and 39 s.
   Do not over-read either. TODO: paired-difference intervals.
 - Caveats from the cost slide apply: hardware is not normalised (the TSFMs ran with
-  `--device cuda`, the tabular models without), and the HGB quantile fit time is
-  slower than TabICL's whole run, which needs a config check (TODO on the cost slide).
-  Both move the points horizontally.
+  `--device cuda`, the tabular models without), which moves the points horizontally.
+  The calibration points sit at about 5× the HGB fit time because of the nested
+  cross-validation.
 - The Chronos-2 and t0-gamma pinball values are from the saved safe-lead runs, their time
   is from the comparison report (see the pinball and cost slides).
 - The next slide uses the predict time only.
@@ -745,12 +746,12 @@ Lower and further left is better. The dashed line is the Pareto frontier.
 1. Foundation models, tabular (TFMs) and time series (TSFMs), are **competitive
    with a scikit-learn baseline**; Kumo-Tabular was best here
 2. **Calibration is not free**: raw HGB quantiles are over-confident (85% at 1 h, 76% at 24 h);
-   recalibration or conformal correction fix it at ~4.6× the fit time
+   recalibration or conformal correction fix it at about **5×** the fit time
 3. Judge with **proper scoring rules**, not coverage alone
 4. The price is **inference**: TFMs and TSFMs cost about 50× to 270× the
    prediction time of HGB quantile
 
-.todo[TODO] Revise once the paired-difference check and the HGB cost check are done.
+.todo[TODO] Revise once the paired-difference check is folded into the ranking.
 
 ???
 
