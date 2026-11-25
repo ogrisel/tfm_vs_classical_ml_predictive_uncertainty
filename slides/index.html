@@ -501,7 +501,6 @@ Nominal coverage 90%. Pinball loss is the mean of the 5% and 95% quantiles.
 | Chronos-2 | 62.4 | -1% | <span class="cov-orange">95.5%</span> | 2203 |
 | t0-gamma | 40.3 | -36% | <span class="cov-orange">93.2%</span> | 1253 |
 ]
-.small.muted[Tabular models: diff features. Chronos-2 and t0-gamma: see speaker notes.]
 ]
 .right-column[
 - Raw HGB quantiles **under-cover** at 1 h: **85%** for 90% (76% at 24 h)
@@ -575,7 +574,6 @@ Nominal coverage 90%. Pinball loss is the mean of the 5% and 95% quantiles.
 | Chronos-2 | 160.8 | -5% | <span class="cov-orange">88.0%</span> | 4373 |
 | t0-gamma | 174.2 | +3% | <span class="cov-green">91.7%</span> | 4974 |
 ]
-.small.muted[Tabular models: diff features. Chronos-2 and t0-gamma: see speaker notes.]
 ]
 .right-column[
 - Raw HGB quantiles are **over-confident** at 24 h: **76%** coverage for 90%
@@ -676,8 +674,6 @@ Summed over the 8 CV folds
 
 - **Weather**: every model gets weather *forecasts*, not observations: day-1 up
   to 18 h, day-2 beyond
-- **Features**: the tabular models (HGB, TabICL, Kumo-Tabular) use the diff
-  features in every result; the TSFMs take the raw load history and do not use them
 - **Baseline**: the RTE forecast exists at 24 h only, so it has no average and no quantiles
 - **Hardware**: not normalised across models (see cost slide)
 - **Scope**: one French load series, one 8-fold split, one set of settings per
