@@ -119,6 +119,53 @@ cost?
 
 ---
 
+## Tabular foundation models in a nutshell
+
+- **Pretrained once** on millions of **synthetic tables**, not on our data
+- **In-context learning**: `fit` only stores the training table; `predict` passes the
+  **training rows and the test rows** through a transformer in one forward pass, with
+  **no gradient step**
+- We use the **defaults**, no tuning, with an **ensemble of 8** members
+- The cost moves to **predict**: a **GPU** helps
+
+.tight[
+| | TabICL | Kumo-Tabular |
+| --- | --- | --- |
+| Package | `tabicl` (open source, with pre-training) | `structured-data-models` (NVIDIA) |
+| Paper | Qu et al., ICML 2025; v2 at ICML 2026 | Qu et al., 2026 preprint |
+| Quantiles | the requested levels | 999 levels, we keep 5 / 50 / 95% |
+| Class used | `TabICLRegressor` | `sdm.models.KumoTabular` (large) |
+]
+
+???
+
+- Sources: the READMEs of github.com/soda-inria/tabicl and
+  github.com/NVIDIA/structured-data-models, and the wrappers in
+  src/electricity_load_forecasting/tabicl.py and kumotabular.py of the case study.
+- Pretraining: the TabICL README says it is pretrained on millions of synthetic datasets
+  (v2: 300 to 48K training rows, 2 to 100 columns) and that its pretraining code is open.
+  The sdm README lists "SCM priors for KumoTabular" among its synthetic data generators, so
+  Kumo-Tabular is also pretrained on synthetic data. I did not check Kumo's pretraining
+  details beyond that.
+- In-context learning: TabICL does `fit` and `predict` jointly in a single forward pass of a
+  pretrained transformer. Our wrappers' `fit` just stores (X, y); `predict` runs the
+  transformer with the training table as context. No gradient step, no per-dataset training.
+- The cost moves to predict: the measured predict times are on the cost slide (TabICL 558 s
+  against 12 s for HGB quantile, over the 8 folds, 24 h). KV caching can move part of it
+  back to `fit` in both libraries; we did not use it.
+- Ensemble: `n_estimators=8` for both (pipeline.py, `make_data_op`). For TabICL the members
+  are differently permuted and normalised views of the same table. I did not check what the
+  members are for Kumo-Tabular.
+- Quantiles: TabICL returns the requested levels (`output_type="quantiles"`, our alphas are
+  0.05, 0.5, 0.95); Kumo-Tabular always returns q001 to q999, and our wrapper picks the three
+  levels and sorts them.
+- Kumo-Tabular: `size="large"`, class `sdm.models.KumoTabular`, paper "NVIDIA Kumo Tabular:
+  Pushing the Accuracy-Efficiency Frontier for Tabular Prediction". The case study pins a
+  commit of the NVIDIA repository. TabICL: the version of the checkpoint depends on the
+  installed `tabicl` (the current README defaults to TabICLv2); check before saying "v2".
+
+---
+
 ## Forecasting as multi-horizon regression
 
 - **Load**: hourly French total load, 2021 to 2025, from ENTSO-E
