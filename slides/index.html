@@ -19,7 +19,10 @@
       - pinball, coverage / width and cost of the tabular models: the comparison rerun
         with the diff features (raw_results/model_comparison/cv_comparison_forecast_fg3,
         scored with the case study compare_predictions.py); TSFMs: the comparison report
-        (pinball in MW: the saved prediction files, see the slide notes).
+        (pinball in MW: the saved prediction files, see the slide notes);
+      - bonus slides (paired differences, critical difference diagrams): computed by
+        scripts/paired_differences.py from the same prediction files, 17,466 rows aligned
+        across the seven models, with the block bootstrap of the case study uncertainty.py.
       Content marked TODO is a placeholder to refine.
     -->
     <textarea id="source">
@@ -133,7 +136,6 @@ cost?
 | --- | --- | --- |
 | Package | `tabicl` (open source, with pre-training) | `structured-data-models` (NVIDIA) |
 | Paper | Qu et al., ICML 2025; v2 at ICML 2026 | Qu et al., 2026 preprint |
-| Quantiles | the requested levels | 999 levels, we keep 5 / 50 / 95% |
 | Class used | `TabICLRegressor` | `sdm.models.KumoTabular` (large) |
 ]
 
@@ -407,8 +409,9 @@ TSFMs: history window and covariates.]
   run per row. Differences of a few MW are noise.
 - t0-gamma and Chronos-2 ran with the day1-stitched weather (2026-11-23 rerun);
   paired differences against the older runs were not significant.
-- TODO: the paired-difference figure with block-bootstrap intervals before saying
-  that one model beats another within the 757-786 MW pack.
+- TODO: paired MAE intervals before saying that one model beats another within the 757-786
+  MW pack of the average MAE. Paired intervals exist for the pinball loss at 1 h and 24 h
+  and for the 24 h MAE against raw HGB (bonus slides), not for the average MAE.
 - 1 h: (364 - 256) / 364 = -30% for Kumo, (364 - 273) / 364 = -25% for t0-gamma,
   (364 - 313) / 364 = -14% for TabICL.
 - 24 h: HGB quantile 987 MW, HGB mean 1036, TabICL 1094, t0-gamma 1103, Chronos-2
@@ -601,8 +604,9 @@ Nominal coverage 90%. Pinball loss is the mean of the 5% and 95% quantiles.
   87%. Bold: the smallest width in the green group, and the lowest pinball loss.
 - Read the table as a whole: at 1 h the models with the lowest pinball loss (Kumo-Tabular,
   t0-gamma, TabICL) are also the narrowest, and two of them are calibrated.
-- TODO: paired-difference intervals before claiming a ranking between Kumo-Tabular,
-  t0-gamma and TabICL.
+- Paired intervals (bonus slides): Kumo-Tabular and t0-gamma are not separable (t0-gamma
+  +1.95 MW [-2.48, +5.48]); TabICL is behind Kumo-Tabular (+7.58 [+3.22, +11.75]). So
+  there is no ranking between Kumo-Tabular and t0-gamma, and TabICL is third.
 
 ---
 
@@ -663,7 +667,10 @@ Nominal coverage 90%. Pinball loss is the mean of the 5% and 95% quantiles.
 - Per horizon, round 2: HGB quantile 93 / 175 / 186 MW (1 h / 12 h / 24 h) before
   and 63 / 160 / 169 after the new features; TabICL 46 / 145 / 171; Kumo-Tabular
   38 / 129 / 161.
-- TODO: paired-difference intervals before claiming a ranking inside the 156-171 MW range.
+- Paired intervals (bonus slides): inside the 156-171 MW range, only HGB conformal against raw
+  HGB (-13.3 MW [-20.2, -6.1]), TabICL (+15.3 [+1.9, +27.9]) and t0-gamma (+18.5 [+4.3,
+  +35.2]) are separable. HGB recal, Kumo-Tabular and Chronos-2 are not separable from HGB
+  conformal. So no ranking inside the top group.
 - Coverage and width source: `coverage_90__24h` and `width_90__24h` of the diff-feature comparison
   (raw_results/model_comparison/cv_comparison_forecast_fg3, scored with
   compare_predictions.py): hgb_quantile_q7 76.23% / 3299 MW, recal 91.05% / 4843,
@@ -756,7 +763,9 @@ Lower and further left is better. The dashed line is the Pareto frontier.
   3106, HGB conformal 9520, HGB recal 9559.
 - Close calls: Chronos-2 is dominated by Kumo-Tabular by only 0.1 MW (160.8 vs 160.7), which
   is noise; its cost is 2x. HGB recal is dominated by HGB conformal by 1.1 MW and 39 s.
-  Do not over-read either. TODO: paired-difference intervals.
+  Do not over-read either. Paired intervals (bonus slides): HGB recal against HGB conformal
+  is +1.13 MW [-0.84, +3.20], not separable; Chronos-2 and Kumo-Tabular are both not
+  separable from HGB conformal (+5.1 each), and I did not test them directly against each other.
 - Caveats from the cost slide apply: hardware is not normalised (the TSFMs ran with
   `--device cuda`, the tabular models without), which moves the points horizontally.
   The calibration points sit at about 5× the HGB fit time because of the nested
@@ -799,7 +808,8 @@ Lower and further left is better. The dashed line is the Pareto frontier.
 ## Takeaways
 
 1. Foundation models, tabular (TFMs) and time series (TSFMs), are **competitive
-   with a scikit-learn baseline**; Kumo-Tabular was best here
+   with a scikit-learn baseline**: the best ones **clearly beat HGB at 1 h**, but at 24 h a
+   **calibrated HGB is statistically tied** with them
 2. **Tabular models**, classical or foundation, can **rival the TSFMs** with **proper
    feature engineering**: the diff features alone cut HGB's 1 h pinball loss from 93 to 63 MW
 3. **Calibration is not free**: raw HGB quantiles are over-confident (85% at 1 h, 76% at 24 h);
@@ -808,11 +818,17 @@ Lower and further left is better. The dashed line is the Pareto frontier.
 5. The price is **inference**: TFMs and TSFMs cost about 50× to 270× the
    prediction time of HGB quantile
 
-.todo[TODO] Revise once the paired-difference check is folded into the ranking.
-
 ???
 
 - Keep these in sync with the final results.
+- Takeaway 1 comes from the paired differences of the pinball loss (bonus slides). At 1 h,
+  Kumo-Tabular (-24.5 MW [-28.4, -19.8]) and t0-gamma (-22.6 [-25.8, -18.8]) beat raw HGB
+  in all 8 folds, and Kumo-Tabular beats the corrected HGB by +24.0 [+19.6, +27.9]. At 24 h,
+  conformal HGB is the lowest, and Kumo-Tabular (+5.1 [-2.8, +12.8]), Chronos-2 (+5.1
+  [-5.9, +15.3]) and recalibrated HGB (+1.1 [-0.8, +3.2]) are not separable from it.
+  Kumo-Tabular is still the best on the median at 24 h (MAE, vs raw HGB -66.6 [-105.8,
+  -19.5]). "Best ones" means Kumo-Tabular and t0-gamma: TabICL is behind them at 1 h and
+  Chronos-2 is tied with raw HGB.
 - Takeaway 2: HGB 1 h pinball 93 MW before and 63 MW after the diff features (round 2,
   raw_results/feature_engineering/round2_selected_groups). At 1 h, TabICL and Kumo-Tabular
   (40 to 46 MW for Kumo and TabICL) are close to t0-gamma (40 MW) and better than Chronos-2
@@ -848,8 +864,117 @@ For the questions, after the talk
 
 ???
 
-- TODO: add the bonus slides here. Everything after this slide is outside the
-  talk: skip it unless a question needs it.
+- Everything after this slide is outside the talk: skip it unless a question needs it.
+- The slides that follow check whether the rankings of the main slides survive a paired
+  statistical test, then draw the conclusion.
+
+---
+
+## Paired differences to the best model, 1 h
+
+Pinball loss, 95% block-bootstrap intervals. Hollow: not separable from the best.
+
+<img class="fig" style="width: 66%" alt="1 h pinball loss difference to Kumo-Tabular, with 95% intervals, for the other six models" src="assets/prob_forecast/paired_to_best_1h.png" />
+
+- **Kumo-Tabular** and **t0-gamma** are tied for first
+- **TabICL** is behind them, but ahead of raw HGB
+- **Corrected HGB** and **Chronos-2** are not separable from raw HGB
+
+???
+
+- Method: the case study block bootstrap (uncertainty.py): daily mean differences of the
+  per-row pinball loss, 14-day moving blocks, 2000 resamples, seed 0; 8 folds pooled,
+  17,466 rows aligned across the seven models. Script: scripts/paired_differences.py.
+- Differences to Kumo-Tabular, MW, with the 95% interval: t0-gamma +1.95 [-2.48, +5.48],
+  TabICL +7.58 [+3.22, +11.75], HGB conformal +23.98 [+19.58, +27.90], Chronos-2 +24.10
+  [+19.08, +28.41], HGB recal +24.31 [+19.79, +28.22], HGB quantile +24.51 [+19.82, +28.35].
+- Against raw HGB quantile: Kumo -24.51 [-28.35, -19.82], t0-gamma -22.56 [-25.79, -18.83],
+  TabICL -16.93 [-19.53, -13.94], each lower in 8 of 8 folds; HGB conformal -0.53
+  [-1.31, +0.46], HGB recal -0.20 [-1.12, +0.86], Chronos-2 -0.41 [-3.47, +3.01].
+- Caveats: the tabular models use the diff features, Chronos-2 and t0-gamma do not use
+  lagged features. Their prediction files are the saved safe-lead runs, not the report's
+  day-1 stitched runs (TODO: add those files to raw_results and recompute).
+
+---
+
+## Paired differences to the best model, 24 h
+
+Pinball loss, 95% block-bootstrap intervals. Hollow: not separable from the best.
+
+<img class="fig" style="width: 66%" alt="24 h pinball loss difference to HGB + conformal, with 95% intervals, for the other six models" src="assets/prob_forecast/paired_to_best_24h.png" />
+
+- **HGB + recal**, **Kumo-Tabular** and **Chronos-2** are not separable from **HGB + conformal**
+- **Raw HGB**, **TabICL** and **t0-gamma** are behind it
+- Wide intervals: **no ranking inside the top group**
+
+???
+
+- Differences to HGB + conformal, MW, 95% interval: HGB recal +1.13 [-0.84, +3.20],
+  Kumo-Tabular +5.05 [-2.81, +12.80], Chronos-2 +5.12 [-5.88, +15.32], HGB quantile +13.32
+  [+6.08, +20.17], TabICL +15.33 [+1.88, +27.87], t0-gamma +18.52 [+4.34, +35.22].
+- Against HGB recal as the reference: Kumo-Tabular +3.92 [-3.25, +11.56], Chronos-2 +3.99
+  [-6.41, +13.93]: the same conclusion.
+- Against raw HGB quantile: conformal -13.32 [-20.17, -6.08] (lower in 7 of 8 folds), recal
+  -12.18 [-19.30, -4.70] (6 of 8), Kumo -8.26 [-20.81, +4.64], Chronos-2 -8.20 [-20.62, +2.50],
+  TabICL +2.01 [-11.23, +15.00], t0-gamma +5.20 [-8.77, +21.41].
+- Kumo-Tabular over-covers at 24 h (98%) and Chronos-2 under-covers (88%): see the coverage
+  slide. The pinball loss does not separate them from a corrected HGB.
+- Same caveats as the 1 h slide.
+
+---
+
+## Critical difference diagrams
+
+A bar joins models that the Nemenyi test cannot separate.
+
+<img class="fig" style="width: 56%" alt="Critical difference diagrams of the pinball loss at 1 h and 24 h" src="assets/prob_forecast/critical_difference.png" />
+
+- **1 h**: **TabICL** is joined to the lower group, which the paired test rejects
+- **24 h**: **one bar** for everything (Friedman p = 0.19)
+- Only **8 folds**, **not independent**: little power
+
+???
+
+- Why this is a weaker tool here: a critical difference diagram (Demsar 2006) compares
+  mean ranks over independent datasets. Our 8 folds are consecutive time windows that share
+  training data, and 8 is few: the Nemenyi critical difference is 3.19 ranks for 7 models
+  and 8 folds (q_0.05 = 2.949), nearly half of the 1-to-7 rank range.
+- The Wilcoxon-Holm alternative cannot reject anything here: with 8 folds the smallest
+  two-sided exact p-value is 2/256 = 0.0078, above the Holm threshold 0.05/21 = 0.0024 for
+  the 21 pairwise tests.
+- Mean ranks, 1 h: Kumo-Tabular 1.62, t0-gamma 1.88, TabICL 2.50, HGB conformal 5.38, HGB
+  quantile 5.50, Chronos-2 5.50, HGB recal 5.62. Friedman p < 0.001.
+- Mean ranks, 24 h: HGB conformal 3.00, HGB recal 3.12, Chronos-2 3.62, Kumo-Tabular 3.88,
+  TabICL 4.00, HGB quantile 4.75, t0-gamma 5.62. Friedman p = 0.19.
+- At 1 h TabICL is within 3.19 ranks of the four lower models (3.12 from the worst), so it
+  shares a bar with them, while the block bootstrap puts TabICL clearly ahead of raw HGB
+  (-16.9 MW, lower in 8 of 8 folds). The two views agree on the order and on the two
+  groups; the paired intervals have more power.
+- The block bootstrap resamples days within the folds, so it uses 17,466 rows, not 8 folds.
+  It also keeps the magnitude of the differences.
+
+---
+
+## Conclusion
+
+- **1 h**: **Kumo-Tabular** and **t0-gamma** lead, **TabICL** follows; HGB, with or without correction, and Chronos-2 are far behind
+- **24 h**: **no clear winner**: a **conformal-corrected HGB** is not separable from Kumo-Tabular or Chronos-2
+- So beyond 1 h, choose on **calibration** and **cost**, not on the average loss
+- **Median forecast** (24 h MAE): Kumo-Tabular is ahead of raw HGB, with a significant paired interval
+
+???
+
+- 1 h and 24 h pinball: see the two previous slides for the intervals.
+- 24 h MAE, difference to raw HGB quantile (negative = better), MW: Kumo-Tabular -66.58
+  [-105.80, -19.47] (lower in 7 of 8 folds); HGB conformal +45.28 [+16.31, +75.52]; HGB
+  recal +57.03 [+24.60, +93.61]; TabICL +107.20 [+54.12, +155.38]; t0-gamma +108.80
+  [+47.19, +177.91]; Chronos-2 +112.89 [+60.85, +158.10]. Only Kumo-Tabular is below raw HGB
+  on the median. I did not test Kumo-Tabular directly against the other models on the MAE.
+- Calibration: raw HGB quantiles are over-confident (85% at 1 h, 76% at 24 h) and
+  recalibration or conformal correction fix it; Kumo-Tabular over-covers at 24 h (98%).
+- Cost: see the cost slides. The TFMs and TSFMs are 50x to 270x slower to predict than HGB.
+- Not tested: paired intervals on the MAE between the TFMs and TSFMs, on the average MAE,
+  and on the 12 h horizon.
     </textarea>
     <script src="vendor/remark.min.js"></script>
     <script>
