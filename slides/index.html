@@ -125,6 +125,8 @@ cost?
 ## Tabular foundation models in a nutshell
 
 - **Pretrained once** on millions of **synthetic tables**, not on our data
+- **Small to medium data** (below ~10k rows): TFMs are usually **stronger** than classical models;
+  the **gap often shrinks** as the number of rows grows
 - **In-context learning**: `fit` only stores the training table; `predict` passes the
   **training rows and the test rows** through a transformer in one forward pass, with
   **no gradient step**
@@ -149,6 +151,16 @@ cost?
   The sdm README lists "SCM priors for KumoTabular" among its synthetic data generators, so
   Kumo-Tabular is also pretrained on synthetic data. I did not check Kumo's pretraining
   details beyond that.
+- Row count: the usual pattern is that TFMs beat classical models on small to medium tables
+  (below ~10k rows), and that the gap shrinks with more rows. This is a general claim from the
+  TFM literature that I have not checked against the TabICL or TabFM papers for the exact
+  breakpoint. The study does not vary the number of rows, so it cannot show the shrinking.
+- Caveat for this study: the tabular runs are not row-matched. The HGB runs used
+  `max_train_rows=9000`, while TabICL and Kumo-Tabular used all rows (`max_train_rows=0`,
+  both in the fg3 run metadata). Every training set spans at least 730 days of hourly data
+  (`min_train_days=730`, so at least 17,520 rows before any cap). The TFMs therefore saw at
+  least about twice the rows of the capped HGB, which favours them. If asked, say so, and do
+  not present the TFM-vs-HGB gap as a row-matched result.
 - In-context learning: TabICL does `fit` and `predict` jointly in a single forward pass of a
   pretrained transformer. Our wrappers' `fit` just stores (X, y); `predict` runs the
   transformer with the training table as context. No gradient step, no per-dataset training.
