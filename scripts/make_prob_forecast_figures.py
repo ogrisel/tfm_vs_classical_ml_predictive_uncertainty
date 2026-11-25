@@ -4,7 +4,7 @@
 # ///
 """Illustrations for the probabilistic forecast slides.
 
-Generates four figures in ``slides/assets/prob_forecast``:
+Generates five figures in ``slides/assets/prob_forecast``:
 
 - ``interval.png``: a synthetic daily load curve with its median forecast and
   the 90% prediction interval (5% and 95% quantiles). Roughly one observation
@@ -14,6 +14,8 @@ Generates four figures in ``slides/assets/prob_forecast``:
   ``y - q`` for ``tau`` = 5%, 50% and 95%.
 - ``coverage_vs_width_1h.png`` and ``coverage_vs_width_24h.png``: 90% coverage
   against interval width at the 1 h and 24 h horizons, one point per model.
+- ``cost_vs_pinball_24h.png``: 24 h pinball loss against fit + predict time,
+  with the Pareto frontier.
 
 Usage::
 
@@ -219,6 +221,97 @@ def plot_coverage_vs_width(path: Path, dpi: int, horizon: int) -> None:
     plt.close(fig)
 
 
+# 24 h horizon, 8 folds pooled. Cost: fit + predict time summed over the 8 folds,
+# in seconds (diff-feature runs for the tabular models, the comparison report for
+# the TSFMs). Pinball loss: mean of the 5% and 95% levels, in MW.
+# Each point is (name, seconds, pinball MW, colour, marker).
+COST_VS_PINBALL = (
+    ("HGB quantile", 2062, 169.0, BLUE, "o"),
+    ("HGB + recal", 9559, 156.8, ORANGE, "o"),
+    ("HGB + conformal", 9520, 155.7, ORANGE, "s"),
+    ("TabICL", 632, 171.0, BLUE, "D"),
+    ("Kumo-Tabular", 1439, 160.7, BLUE, "D"),
+    ("Chronos-2", 3106, 160.8, LIGHT_BLUE, "^"),
+    ("t0-gamma", 1050, 174.2, LIGHT_BLUE, "^"),
+)
+
+# (dx, dy in points, ha): placed to stay off the frontier line
+_COST_LABELS = {
+    "HGB quantile": (9, 0, "left"),
+    "HGB + recal": (9, 7, "left"),
+    "HGB + conformal": (-9, -2, "right"),
+    "TabICL": (0, 14, "center"),
+    "Kumo-Tabular": (0, -15, "center"),
+    "Chronos-2": (0, 14, "center"),
+    "t0-gamma": (9, 0, "left"),
+}
+
+
+def pareto_frontier(points):
+    """Non-dominated (cost, loss) pairs when both are minimised, by increasing cost."""
+    frontier, best = [], float("inf")
+    for cost, loss in sorted(points):
+        if loss < best:
+            frontier.append((cost, loss))
+            best = loss
+    return frontier
+
+
+def plot_cost_vs_pinball(path: Path, dpi: int) -> None:
+    """24 h pinball loss against total fit + predict time, with the Pareto frontier."""
+    from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator
+
+    fig, ax = plt.subplots(figsize=(9.2, 3.1), facecolor=BEIGE)
+    _style(ax)
+    xmax = 300
+    frontier = pareto_frontier([(sec / 60, loss) for _, sec, loss, _, _ in COST_VS_PINBALL])
+    xs, ys = zip(*frontier)
+    ax.step(
+        [*xs, xmax], [*ys, ys[-1]], where="post", color=GRAY, lw=1.3, ls="--", zorder=1, label="Pareto frontier"
+    )
+    for name, sec, loss, color, marker in COST_VS_PINBALL:
+        minutes = sec / 60
+        ax.scatter([minutes], [loss], s=80, color=color, marker=marker, zorder=3, edgecolors=BLUE, linewidths=0.6)
+        dx, dy, ha = _COST_LABELS[name]
+        ax.annotate(
+            name,
+            (minutes, loss),
+            textcoords="offset points",
+            xytext=(dx, dy),
+            ha=ha,
+            va="center",
+            fontsize=12,
+            color=BLUE,
+        )
+    # same colour key as the coverage plots, plus the frontier
+    for label, color in (("raw tabular", BLUE), ("corrected HGB", ORANGE), ("TSFM", LIGHT_BLUE)):
+        ax.scatter([], [], s=60, color=color, marker="o", edgecolors=BLUE, linewidths=0.6, label=label)
+    handles, labels = ax.get_legend_handles_labels()
+    order = [labels.index(k) for k in ("raw tabular", "corrected HGB", "TSFM", "Pareto frontier")]
+    legend = ax.legend(
+        [handles[i] for i in order],
+        [labels[i] for i in order],
+        loc="upper right",
+        frameon=False,
+        fontsize=11,
+        handletextpad=0.5,
+        borderaxespad=0.2,
+    )
+    for text in legend.get_texts():
+        text.set_color(GRAY)
+    ax.set_xscale("log")
+    ax.xaxis.set_major_locator(FixedLocator([10, 20, 50, 100, 200]))
+    ax.xaxis.set_minor_locator(NullLocator())
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+    ax.set_xlim(8, xmax)
+    ax.set_ylim(153, 177.5)
+    ax.set_xlabel("fit + predict time over the 8 folds (min, log scale)", color=GRAY, fontsize=13)
+    ax.set_ylabel("24 h pinball loss (MW)", color=GRAY, fontsize=13)
+    fig.tight_layout()
+    fig.savefig(path, dpi=dpi, facecolor=BEIGE)
+    plt.close(fig)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--outdir", type=Path, default=REPO / "slides/assets/prob_forecast")
@@ -229,6 +322,7 @@ def main() -> None:
     plot_pinball(args.outdir / "pinball.png", args.dpi)
     for horizon in (1, 24):
         plot_coverage_vs_width(args.outdir / f"coverage_vs_width_{horizon}h.png", args.dpi, horizon)
+    plot_cost_vs_pinball(args.outdir / "cost_vs_pinball_24h.png", args.dpi)
     print(f"wrote figures in {args.outdir}")
 
 

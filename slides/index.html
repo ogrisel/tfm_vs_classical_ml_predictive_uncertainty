@@ -670,6 +670,36 @@ Summed over the 8 CV folds
 
 ---
 
+## Pinball loss against cost, 24 h
+
+Lower and further left is better. The dashed line is the Pareto frontier.
+
+<img class="fig" style="width: 78%" alt="24 h pinball loss against fit and predict time, one point per model, with the Pareto frontier" src="assets/prob_forecast/cost_vs_pinball_24h.png" />
+
+- **On the frontier**: TabICL, Kumo-Tabular, and HGB + conformal (~6.6× Kumo's time)
+- **Dominated**: raw HGB quantile, Chronos-2, t0-gamma and recalibrated HGB
+
+???
+
+- Axes: x is the fit + predict time summed over the 8 folds (the first column of the
+  cost slide, log scale); y is the 24 h pinball loss, the mean of the 5% and 95% levels
+  in MW (the 24 h column of the pinball slide). Same numbers as those two slides.
+- Frontier: a model is on it if no other model is both faster and has a lower loss.
+  Computed in scripts/make_prob_forecast_figures.py (`pareto_frontier`), not drawn by hand.
+  Seconds: TabICL 632, t0-gamma 1050, Kumo-Tabular 1439, HGB quantile 2062, Chronos-2
+  3106, HGB conformal 9520, HGB recal 9559.
+- Close calls: Chronos-2 is dominated by Kumo-Tabular by only 0.1 MW (160.8 vs 160.7), which
+  is noise; its cost is 2x. HGB recal is dominated by HGB conformal by 1.1 MW and 39 s.
+  Do not over-read either. TODO: paired-difference intervals.
+- Caveats from the cost slide apply: hardware is not normalised (the TSFMs ran with
+  `--device cuda`, the tabular models without), and the HGB quantile fit time is
+  slower than TabICL's whole run, which needs a config check (TODO on the cost slide).
+  Both move the points horizontally.
+- The Chronos-2 and t0-gamma pinball values are from the saved safe-lead runs, their time
+  is from the comparison report (see the pinball and cost slides).
+
+---
+
 ## Read the comparison with care
 
 - **Weather**: every model gets weather *forecasts*, not observations: day-1 up
