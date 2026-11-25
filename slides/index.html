@@ -462,12 +462,20 @@ covariates instead.]
 - **Strictly proper scoring rules** reward both at once: *pinball loss* for quantiles
 - Always evaluated on **left-out data**, here with time-ordered CV
 
-.placeholder[TODO: one figure: a calibrated-but-useless vs sharp-but-overconfident interval]
+<img class="fig" style="width: 74%" alt="Two 90% intervals on the same synthetic load curve: a flat band that covers 89% but is 16.8 GW wide, and a narrow band that is 2.3 GW wide but covers 61%" src="assets/prob_forecast/calibration_contrast.png" />
 
 ???
 
 - Key message: coverage alone is gameable (infinitely wide intervals), width
   alone is gameable (zero width): scoring rules combine both.
+- Figure: scripts/make_prob_forecast_figures.py, same synthetic curve as the
+  interval slide. Left: a flat band at the marginal 5% and 95% quantiles. It
+  ignores the time of day, so it covers about 90% (89% on these 72 points) but is
+  wide everywhere. Right: the true median with half the true spread. It is
+  narrow, but covers only 61%.
+- Pinball loss (mean of the 5% and 95% levels, synthetic units): 0.48 for the flat
+  band, 0.23 for the overconfident one, 0.15 for the calibrated interval of the
+  previous slide. Both mistakes cost more than the calibrated, sharp interval.
 
 ---
 ## The pinball loss

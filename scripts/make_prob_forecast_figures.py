@@ -4,12 +4,15 @@
 # ///
 """Illustrations for the probabilistic forecast slides.
 
-Generates six figures in ``slides/assets/prob_forecast``:
+Generates seven figures in ``slides/assets/prob_forecast``:
 
 - ``interval.png``: a synthetic daily load curve with its median forecast and
   the 90% prediction interval (5% and 95% quantiles). Roughly one observation
   in ten falls outside the interval, which is what a calibrated forecaster
   should produce. The curves are synthetic (shapes realistic, values not).
+- ``calibration_contrast.png``: two 90% intervals on the same synthetic curve,
+  one calibrated but useless (flat, covers about 90%), one sharp but overconfident
+  (narrow, covers about half).
 - ``pinball.png``: the pinball loss ``L_tau`` as a function of the error
   ``y - q`` for ``tau`` = 5%, 50% and 95%.
 - ``coverage_vs_width_1h.png`` and ``coverage_vs_width_24h.png``: 90% coverage
@@ -55,8 +58,8 @@ def _style(ax):
     ax.tick_params(colors=GRAY, labelsize=14)
 
 
-def plot_interval(path: Path, dpi: int) -> None:
-    """Median forecast and 90% prediction interval on a synthetic load curve."""
+def _synthetic_load():
+    """Hours, median forecast, true predictive std and one realised load curve."""
     rng = np.random.default_rng(13)
     hours = np.arange(72)
     daily = 55 - 7 * np.cos(2 * np.pi * (hours - 4) / 24) + 3 * np.sin(4 * np.pi * (hours - 8) / 24)
@@ -64,8 +67,14 @@ def plot_interval(path: Path, dpi: int) -> None:
     median = daily + weekly
     # the uncertainty is larger at the daily peaks than at night
     sigma = 1.0 + 0.8 * (1 + np.cos(2 * np.pi * (hours - 18) / 24)) / 2
-    lo, hi = median - Z95 * sigma, median + Z95 * sigma
     truth = median + sigma * rng.standard_normal(hours.size)
+    return hours, median, sigma, truth
+
+
+def plot_interval(path: Path, dpi: int) -> None:
+    """Median forecast and 90% prediction interval on a synthetic load curve."""
+    hours, median, sigma, truth = _synthetic_load()
+    lo, hi = median - Z95 * sigma, median + Z95 * sigma
     outside = (truth < lo) | (truth > hi)
 
     fig, ax = plt.subplots(figsize=(9.0, 3.3), facecolor=BEIGE)
@@ -81,6 +90,56 @@ def plot_interval(path: Path, dpi: int) -> None:
     ax.set_ylabel("load (GW)", color=GRAY, fontsize=13)
     ax.set_xlim(0, hours[-1])
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.2), ncol=2, frameon=False, fontsize=11.5, labelcolor=BLUE)
+    fig.tight_layout()
+    fig.savefig(path, dpi=dpi, facecolor=BEIGE)
+    plt.close(fig)
+
+
+def _draw_band(ax, hours, truth, median, lo, hi, title: str) -> None:
+    """Interval band, median and observed curve; outside points in red."""
+    outside = (truth < lo) | (truth > hi)
+    _style(ax)
+    ax.fill_between(hours, lo, hi, color=LIGHT_BLUE, alpha=0.45, lw=0)
+    ax.plot(hours, lo, color=LIGHT_BLUE, lw=1)
+    ax.plot(hours, hi, color=LIGHT_BLUE, lw=1)
+    ax.plot(hours, median, color=ORANGE, lw=2.6)
+    ax.plot(hours, truth, color=BLUE, lw=1.0, alpha=0.55)
+    ax.scatter(hours[~outside], truth[~outside], s=14, color=BLUE, zorder=3)
+    ax.scatter(hours[outside], truth[outside], s=46, color=RED, zorder=4)
+    ax.set_title(title, color=BLUE, fontsize=15)
+    ax.set_xlim(0, hours[-1])
+    ax.set_xlabel("time (hours)", color=GRAY, fontsize=13)
+
+
+def plot_calibration_contrast(path: Path, dpi: int) -> None:
+    """Two 90% intervals on the same load curve: calibrated but useless vs sharp but overconfident.
+
+    Left: a flat band at the marginal 5% and 95% quantiles of the load. It covers
+    about 90% of the points, but ignores the time of day, so it is wide everywhere.
+    Right: the true median and half the true spread. It is narrow, but it only
+    covers about half of the points.
+    """
+    hours, median, sigma, truth = _synthetic_load()
+
+    # calibrated but useless: the marginal quantiles, whatever the hour
+    flat_lo, flat_hi = (np.full(hours.size, q) for q in np.quantile(truth, [0.05, 0.95]))
+    flat_median = np.full(hours.size, np.median(truth))
+
+    # sharp but overconfident: the true median, with half the true spread
+    sharp_lo, sharp_hi = median - 0.5 * Z95 * sigma, median + 0.5 * Z95 * sigma
+
+    fig, axes = plt.subplots(1, 2, figsize=(9.0, 3.5), sharey=True, facecolor=BEIGE)
+    for ax, (lo, hi, med, name) in zip(
+        axes,
+        (
+            (flat_lo, flat_hi, flat_median, "calibrated, but useless"),
+            (sharp_lo, sharp_hi, median, "sharp, but overconfident"),
+        ),
+    ):
+        covered = np.mean((truth >= lo) & (truth <= hi))
+        width = np.mean(hi - lo)
+        _draw_band(ax, hours, truth, med, lo, hi, f"{name}\ncoverage {covered:.0%}, width {width:.1f} GW")
+    axes[0].set_ylabel("load (GW)", color=GRAY, fontsize=13)
     fig.tight_layout()
     fig.savefig(path, dpi=dpi, facecolor=BEIGE)
     plt.close(fig)
@@ -350,6 +409,7 @@ def main() -> None:
     args = parser.parse_args()
     args.outdir.mkdir(parents=True, exist_ok=True)
     plot_interval(args.outdir / "interval.png", args.dpi)
+    plot_calibration_contrast(args.outdir / "calibration_contrast.png", args.dpi)
     plot_pinball(args.outdir / "pinball.png", args.dpi)
     for horizon in (1, 24):
         plot_coverage_vs_width(args.outdir / f"coverage_vs_width_{horizon}h.png", args.dpi, horizon)
