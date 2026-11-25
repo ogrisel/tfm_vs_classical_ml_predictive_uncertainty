@@ -4,7 +4,7 @@
 # ///
 """Illustrations for the probabilistic forecast slides.
 
-Generates seven figures in ``slides/assets/prob_forecast``:
+Generates ten figures in ``slides/assets/prob_forecast``:
 
 - ``interval.png``: a synthetic daily load curve with its median forecast and
   the 90% prediction interval (5% and 95% quantiles). Roughly one observation
@@ -20,6 +20,11 @@ Generates seven figures in ``slides/assets/prob_forecast``:
 - ``pinball_vs_fit_predict_24h.png`` and ``pinball_vs_predict_24h.png``: 24 h
   pinball loss against the fit + predict time and against the predict time only,
   each with its Pareto frontier.
+- ``paired_to_best_1h.png`` and ``paired_to_best_24h.png``: paired pinball-loss
+  differences to the best model, with block-bootstrap intervals.
+- ``critical_difference.png``: critical difference diagrams (Nemenyi) of the
+  per-fold pinball ranks at 1 h and 24 h.
+  The numbers come from ``scripts/paired_differences.py``.
 
 Usage::
 
@@ -402,6 +407,180 @@ def plot_cost_vs_pinball(path: Path, dpi: int, kind: str) -> None:
     plt.close(fig)
 
 
+# Paired pinball-loss differences to the best model of the horizon (mean of the 5%
+# and 95% levels, MW; positive = worse than the best), with the 95% block
+# bootstrap interval. 8 folds pooled, 17,466 aligned rows. Computed by
+# scripts/paired_differences.py from raw_results.
+# Each row is (name, mean, low, high).
+PAIRED_TO_BEST = {
+    1: (
+        "Kumo-Tabular",
+        (
+            ("t0-gamma", 1.95, -2.48, 5.48),
+            ("TabICL", 7.58, 3.22, 11.75),
+            ("HGB + conformal", 23.98, 19.58, 27.90),
+            ("Chronos-2", 24.10, 19.08, 28.41),
+            ("HGB + recal", 24.31, 19.79, 28.22),
+            ("HGB quantile", 24.51, 19.82, 28.35),
+        ),
+        (-5, 32),
+    ),
+    24: (
+        "HGB + conformal",
+        (
+            ("HGB + recal", 1.13, -0.84, 3.20),
+            ("Kumo-Tabular", 5.05, -2.81, 12.80),
+            ("Chronos-2", 5.12, -5.88, 15.32),
+            ("HGB quantile", 13.32, 6.08, 20.17),
+            ("TabICL", 15.33, 1.88, 27.87),
+            ("t0-gamma", 18.52, 4.34, 35.22),
+        ),
+        (-8, 38),
+    ),
+}
+
+# Marker style per model, as in the coverage and cost plots.
+_STYLE = {
+    "HGB quantile": (BLUE, "o"),
+    "HGB + recal": (ORANGE, "o"),
+    "HGB + conformal": (ORANGE, "s"),
+    "TabICL": (BLUE, "D"),
+    "Kumo-Tabular": (BLUE, "D"),
+    "Chronos-2": (LIGHT_BLUE, "^"),
+    "t0-gamma": (LIGHT_BLUE, "^"),
+}
+
+
+def plot_paired_to_best(path: Path, dpi: int, horizon: int) -> None:
+    """Pinball difference to the best model with 95% intervals; hollow = includes 0."""
+    from matplotlib.lines import Line2D
+
+    best, rows, xlim = PAIRED_TO_BEST[horizon]
+    fig, ax = plt.subplots(figsize=(9.2, 3.3), facecolor=BEIGE)
+    _style(ax)
+    ax.axvline(0, color=GRAY, lw=1, ls="--")
+    names = [best] + [r[0] for r in rows]
+    ys = np.arange(len(names))[::-1]
+    color, marker = _STYLE[best]
+    ax.scatter([0], [ys[0]], s=80, color=color, marker=marker, zorder=3, edgecolors=BLUE, linewidths=0.6)
+    for y, (name, mean, low, high) in zip(ys[1:], rows):
+        color, marker = _STYLE[name]
+        significant = low > 0
+        ax.plot([low, high], [y, y], color=GRAY, lw=2, zorder=2, solid_capstyle="butt")
+        ax.scatter(
+            [mean],
+            [y],
+            s=80,
+            color=color if significant else BEIGE,
+            marker=marker,
+            zorder=3,
+            edgecolors=BLUE,
+            linewidths=1.2 if not significant else 0.6,
+        )
+    ax.set_yticks(ys)
+    ax.set_yticklabels([f"{best} (best)"] + names[1:], color=BLUE, fontsize=12.5)
+    ax.tick_params(axis="y", length=0)
+    ax.set_xlim(*xlim)
+    ax.set_ylim(-0.6, len(names) - 0.4)
+    ax.set_xlabel(f"{horizon} h pinball loss minus the best model's (MW), with 95% interval", color=GRAY, fontsize=13)
+    keys = [
+        Line2D([], [], ls="", marker="o", ms=8, mfc=GRAY, mec=BLUE, mew=0.6, label="worse than the best"),
+        Line2D([], [], ls="", marker="o", ms=8, mfc=BEIGE, mec=BLUE, mew=1.2, label="not separable from the best"),
+    ]
+    legend = ax.legend(handles=keys, loc="upper right", frameon=False, fontsize=11, handletextpad=0.3)
+    for text in legend.get_texts():
+        text.set_color(GRAY)
+    fig.tight_layout()
+    fig.savefig(path, dpi=dpi, facecolor=BEIGE)
+    plt.close(fig)
+
+
+# Per-fold mean ranks of the pinball loss (8 folds), the Friedman p-value and the
+# Nemenyi critical difference for 7 models and 8 folds (q_0.05 = 2.949, Demsar 2006).
+# Computed by scripts/paired_differences.py from raw_results.
+NEMENYI_CD = 3.19
+MEAN_RANKS = {
+    1: (
+        "Friedman p < 0.001",
+        {
+            "Kumo-Tabular": 1.62,
+            "t0-gamma": 1.88,
+            "TabICL": 2.50,
+            "HGB + conformal": 5.38,
+            "HGB quantile": 5.50,
+            "Chronos-2": 5.50,
+            "HGB + recal": 5.62,
+        },
+    ),
+    24: (
+        "Friedman p = 0.19",
+        {
+            "HGB + conformal": 3.00,
+            "HGB + recal": 3.12,
+            "Chronos-2": 3.62,
+            "Kumo-Tabular": 3.88,
+            "TabICL": 4.00,
+            "HGB quantile": 4.75,
+            "t0-gamma": 5.62,
+        },
+    ),
+}
+
+
+def _cliques(ranks: list[float], cd: float) -> list[tuple[int, int]]:
+    """Maximal runs of consecutive sorted ranks whose spread is below ``cd``."""
+    runs = []
+    for i in range(len(ranks)):
+        j = i
+        while j + 1 < len(ranks) and ranks[j + 1] - ranks[i] < cd:
+            j += 1
+        if j > i and not any(a <= i and j <= b for a, b in runs):
+            runs.append((i, j))
+    return runs
+
+
+def plot_critical_difference(path: Path, dpi: int) -> None:
+    """Critical difference diagrams (Nemenyi) of the pinball loss, at 1 h and 24 h."""
+    fig, axes = plt.subplots(2, 1, figsize=(9.0, 4.7), facecolor=BEIGE)
+    for ax, horizon in zip(axes, (1, 24)):
+        note, ranks = MEAN_RANKS[horizon]
+        names = sorted(ranks, key=ranks.get)
+        values = [ranks[n] for n in names]
+        half = (len(names) + 1) // 2
+        ax.set_facecolor(BEIGE)
+        ax.axis("off")
+        ax.set_xlim(-1.9, 9.6)
+        ax.set_ylim(-3.1, 2.5)
+        # rank axis
+        ax.plot([1, 7], [0, 0], color=BLUE, lw=1.5)
+        for tick in range(1, 8):
+            ax.plot([tick, tick], [0, 0.12], color=BLUE, lw=1.5)
+            ax.text(tick, 0.2, str(tick), ha="center", va="bottom", fontsize=12, color=BLUE)
+        ax.text(4, 1.95, f"{horizon} h pinball loss: mean rank over 8 folds ({note})", ha="center", fontsize=12.5, color=BLUE)
+        # critical difference bar
+        ax.plot([1, 1 + NEMENYI_CD], [1.25, 1.25], color=GRAY, lw=2)
+        ax.plot([1, 1], [1.17, 1.33], color=GRAY, lw=2)
+        ax.plot([1 + NEMENYI_CD] * 2, [1.17, 1.33], color=GRAY, lw=2)
+        ax.text(1 + NEMENYI_CD + 0.1, 1.25, f"CD = {NEMENYI_CD}", va="center", fontsize=11, color=GRAY)
+        # labels: best half on the left, the rest on the right, elbow lines
+        for i, (name, rank) in enumerate(zip(names, values)):
+            if i < half:
+                depth = 0.55 + 0.55 * (i + 1)
+                label_x, ha = 0.85, "right"
+            else:
+                depth = 0.55 + 0.55 * (len(names) - i)
+                label_x, ha = 7.15, "left"
+            ax.plot([rank, rank, label_x], [0, -depth, -depth], color=BLUE, lw=1)
+            ax.text(label_x + (-0.08 if ha == "right" else 0.08), -depth, name, ha=ha, va="center", fontsize=12, color=BLUE)
+        # cliques: thick bars under the axis joining models that are not separable
+        for k, (a, b) in enumerate(_cliques(values, NEMENYI_CD)):
+            y = -0.2 - 0.17 * k
+            ax.plot([values[a] - 0.04, values[b] + 0.04], [y, y], color=ORANGE, lw=5, solid_capstyle="round", zorder=3)
+    fig.tight_layout()
+    fig.savefig(path, dpi=dpi, facecolor=BEIGE)
+    plt.close(fig)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--outdir", type=Path, default=REPO / "slides/assets/prob_forecast")
@@ -415,6 +594,9 @@ def main() -> None:
         plot_coverage_vs_width(args.outdir / f"coverage_vs_width_{horizon}h.png", args.dpi, horizon)
     plot_cost_vs_pinball(args.outdir / "pinball_vs_fit_predict_24h.png", args.dpi, "fit_predict")
     plot_cost_vs_pinball(args.outdir / "pinball_vs_predict_24h.png", args.dpi, "predict")
+    for horizon in (1, 24):
+        plot_paired_to_best(args.outdir / f"paired_to_best_{horizon}h.png", args.dpi, horizon)
+    plot_critical_difference(args.outdir / "critical_difference.png", args.dpi)
     print(f"wrote figures in {args.outdir}")
 
 
