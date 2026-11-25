@@ -740,40 +740,6 @@ Lower and further left is better. The dashed line is the Pareto frontier.
 
 ---
 
-## Small vs large sample size
-
-Point forecast MAPE (average over horizons) vs amount of training history
-
-.num[
-| History | HGB (mean) | TabICL (median) |
-| --- | ---: | ---: |
-| 3 months | 6.49% | **5.05%** |
-| 12 months | 2.02% | **1.90%** |
-| 24 months | 1.81% | **1.74%** |
-| all (26-47) | 1.67% | **1.65%** |
-]
-
-- TabICL's advantage is largest with **little data** and vanishes with more
-- ...but its inference cost keeps growing with the context size
-
-.small.muted[Preliminary: this study confounds history length with seasonal coverage and has no uncertainty bars.]
-
-???
-
-- Source: docs/history-length/report/index.html (case study), built by
-  scripts/history_length/build_report.py from the output of cross_validate_history.py
-  (results/history_length/, not in this checkout). Numbers checked against the report: MAPE
-  average over horizons, HGB mean and TabICL median, 8 folds pooled, test dates identical.
-- The report is marked "Work in progress: do not take these results at face value. This
-  study confounds training-history length with seasonal coverage, reuses a row from a
-  different run, and shows no uncertainty." The "reuses a row" caveat is not on the slide;
-  I could not identify the row from the repo. Do not present as definitive before Jérôme
-  re-runs it.
-- Only HGB and TabICL are covered. TODO: the same sweep for Chronos-2, t0-gamma
-  and Kumo, if it is feasible before the talk.
-
----
-
 ## Takeaways
 
 1. Foundation models, tabular (TFMs) and time series (TSFMs), are **competitive
