@@ -460,26 +460,8 @@ class: dark, middle, section-slide
 
 From one number to a 90% prediction interval
 ---
-## A 90% prediction interval from two quantiles
 
-- Predict **quantiles** of the load instead of one value: **5%**, **50%**, **95%**
-- The 5% and 95% quantiles delimit a **90% prediction interval**: the load falls
-  **inside it 90%** of the time. Its **width** is the stated uncertainty
-
-<img class="fig" style="width: 78%" alt="Median forecast and 90% prediction interval on a synthetic load curve" src="assets/prob_forecast/interval.png" />
-
-???
-
-- Figure: scripts/make_prob_forecast_figures.py. Synthetic curves, drawn so that
-  the interval is wider at the daily peaks; 7 of 72 points fall outside, close to the
-  expected 10%.
-- 90% is the nominal level: "calibrated" means that the observed frequency
-  matches it over many predictions, not that every point is inside.
-- All the models of the study predict 5%, 50% and 95%, so that they are scored
-  on exactly the same three quantiles even when they predict more (Kumo returns 999 quantiles, HGB was trained on 7 levels).
----
-
-## Simplicity of development
+## TFMs are probabilistic regressors
 
 .cols[
 .left-column[
@@ -517,9 +499,6 @@ preds = model.predict(
 ]
 ]
 
-.small[TSFMs skip the feature table: they take a history window and future
-covariates instead.]
-
 ???
 
 - Source: src/electricity_load_forecasting/quantile_regressor.py and
@@ -530,6 +509,24 @@ covariates instead.]
 - TODO: mention hyper-parameter tuning budget on the HGB side (Optuna in
   scripts/tuning/).
 
+---
+## A 90% prediction interval from two quantiles
+
+- Predict **quantiles** of the load instead of one value: **5%**, **50%**, **95%**
+- The 5% and 95% quantiles delimit a **90% prediction interval**: the load falls
+  **inside it 90%** of the time. Its **width** is the stated uncertainty
+
+<img class="fig" style="width: 78%" alt="Median forecast and 90% prediction interval on a synthetic load curve" src="assets/prob_forecast/interval.png" />
+
+???
+
+- Figure: scripts/make_prob_forecast_figures.py. Synthetic curves, drawn so that
+  the interval is wider at the daily peaks; 7 of 72 points fall outside, close to the
+  expected 10%.
+- 90% is the nominal level: "calibrated" means that the observed frequency
+  matches it over many predictions, not that every point is inside.
+- All the models of the study predict 5%, 50% and 95%, so that they are scored
+  on exactly the same three quantiles even when they predict more (Kumo returns 999 quantiles, HGB was trained on 7 levels).
 ---
 
 ## What is a *good* probabilistic prediction?
@@ -869,6 +866,8 @@ class: dark, middle, title-slide
 
 # Thank you
 
+.cols[
+.left-column[
 <div class="authors">
 Olivier Grisel &amp; Jérôme Dockès<br/>
 <span class="sub">Probabl, the Tabular AI company</span>
@@ -877,10 +876,20 @@ Olivier Grisel &amp; Jérôme Dockès<br/>
 - Case study reports: [probabl-ai.github.io/skore-example-electricity-load](https://probabl-ai.github.io/skore-example-electricity-load/)
 - Code: [github.com/probabl-ai/skore-example-electricity-load](https://github.com/probabl-ai/skore-example-electricity-load)
 - TabICL &middot; scikit-learn &middot; skrub &middot; skore
+]
+.right-column[
+.center[
+<img class="fig" style="width: 70%" alt="QR code to these slides" src="assets/slides-qr.png" />
+.small[These slides]
+]
+]
+]
 
 ???
 
-- TODO: add contact details / QR code to the slides repository.
+- TODO: add contact details to the thank you slide.
+- The QR code opens the hosted deck:
+  https://ogrisel.github.io/tfm_vs_classical_ml_predictive_uncertainty/
 
 ---
 class: dark, middle, section-slide
