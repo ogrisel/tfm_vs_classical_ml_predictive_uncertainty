@@ -758,6 +758,13 @@ Lower and further left is better. The dashed line is the Pareto frontier.
 ???
 
 - Keep these in sync with the final results.
+- Takeaway 2: HGB 1 h pinball 93 MW before and 63 MW after the diff features (round 2,
+  raw_results/feature_engineering/round2_selected_groups). At 1 h, TabICL and Kumo-Tabular
+  (40 to 46 MW for Kumo and TabICL) are close to t0-gamma (40 MW) and better than Chronos-2
+  (62 MW); the Kumo vs t0-gamma difference is not significant (paired interval -2.5 to +5.5).
+  At 24 h the corrected HGB (156 MW) is below Chronos-2 (161 MW) and t0-gamma (174 MW).
+  The TSFMs use raw history without the lagged features, so this is not a like-for-like
+  comparison; say so if asked.
 
 ---
 class: dark, middle, title-slide
